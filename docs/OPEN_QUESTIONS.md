@@ -12,7 +12,14 @@ No blocking questions currently recorded.
 
 ## NON-BLOCKING
 
-No non-blocking questions currently recorded.
+#### Q001: Should initial source detection support only canonical `~/.bash_history` and `~/.zsh_history` paths?
+
+- Area: source detection defaults
+- Temporary assumption: yes, detect only canonical Bash and Zsh history paths in slice `006`
+- Why non-blocking: configurable/custom history path support can be added later without changing parser correctness
+- Why assumption is safe: it narrows behavior conservatively and does not mutate data
+- Reversal cost: low
+- Status: assumed-non-blocking
 
 ## Answered / historical
 
