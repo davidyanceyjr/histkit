@@ -2,31 +2,31 @@
 
 ## Current session
 
-ID: `009-scan-pipeline`
+ID: `010-stats-command`
 
 Status: completed
 
 ## Objective
 
-Implement the initial `scan` pipeline from source detection through SQLite indexing.
+Implement the initial `stats` command over the SQLite history index.
 
 ## Scope
 
 Implement:
 
-- `internal/cli/scan.go`
-- shell source detection, parsing, and SQLite indexing flow
-- scan summary output
+- `internal/cli/stats.go`
+- index-backed aggregate queries for `history_entries`
+- shell/source count reporting
 - deterministic CLI tests using temporary home directories
 
 ## Out of scope
 
-- stats queries
 - run metadata writer logic
 - sanitizer metadata tables
 - snippet tables
 - backup tables
 - destructive cleanup
+- duplicate analytics beyond current schema-backed counts
 
 ## Relevant skills
 
@@ -38,16 +38,16 @@ Implement:
 ## Acceptance criteria
 
 - `go test ./...` passes
-- `histkit scan` detects supported history sources and writes parsed entries to SQLite
-- `histkit scan --shell <shell>` limits ingest to one shell
-- the scan path remains non-destructive and only reads history files
-- deterministic CLI tests cover indexing through a temporary home directory
+- `histkit stats` reads the SQLite index and prints total indexed entries
+- `histkit stats` prints counts by shell and source file
+- the stats path remains read-only
+- deterministic CLI tests cover empty and populated indexes through temporary home directories
 
 ## Current repo state
 
-The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, source detection, SQLite schema initialization, history-entry writer, and the initial scan pipeline now exist.
+The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, source detection, SQLite schema initialization, history-entry writer, initial scan pipeline, and initial stats command now exist.
 
-The stats command is still a placeholder and no aggregated reporting exists yet.
+The doctor command is still a placeholder and richer analytics remain out of scope.
 
 ## Decisions already made
 
@@ -61,7 +61,7 @@ The stats command is still a placeholder and no aggregated reporting exists yet.
 ## Risks to watch
 
 - Keep migrations explicit from the first schema version.
-- Keep scan behavior conservative and read-only.
+- Keep command behavior read-only outside explicit cleanup/apply milestones.
 - Preserve safe nullability for metadata that parsers may not always populate.
 
 ## Open questions
@@ -88,18 +88,20 @@ No questions answered yet.
 
 Summary:
 
-- Replaced the scan placeholder with an end-to-end source-detection, parse, schema-init, and index-write pipeline.
-- Added `scan` support for `--shell` and `--config` flags with conservative, read-only behavior.
-- Added temporary-home CLI tests that verify indexing, shell filtering, and unsupported-shell errors.
+- Replaced the stats placeholder with an index-backed `stats` command.
+- Added SQLite aggregate queries for total indexed entries plus shell and source breakdowns.
+- Added deterministic tests for empty and populated stats output and the underlying query layer.
 
 Files changed:
 
 - SESSION.md
 - internal/cli/root.go
 - internal/cli/root_test.go
-- internal/cli/scan.go
-- internal/cli/scan_test.go
-- SESSIONS/009-scan-pipeline.md
+- internal/cli/stats.go
+- internal/cli/stats_test.go
+- internal/index/stats.go
+- internal/index/stats_test.go
+- SESSIONS/010-stats-command.md
 
 Files read:
 
@@ -108,26 +110,20 @@ Files read:
 - SESSION.md
 - SKILLS/sqlite.md
 - SKILLS/testing.md
-- SKILLS/history-parsing.md
 - SKILLS/go-cli.md
-- internal/config/config.go
-- internal/config/config_test.go
-- internal/cli/root.go
-- internal/cli/root_test.go
-- internal/cli/doctor.go
-- internal/cli/stats.go
-- internal/cli/scan.go
-- internal/history/detect.go
-- internal/history/bash.go
-- internal/history/zsh.go
-- internal/index/writer.go
+- README.md
 - docs/histkit-implementation-plan.md
+- internal/cli/stats.go
+- internal/cli/scan_test.go
+- internal/index/schema.go
 
 Tests added:
 
-- TestExecuteScanIndexesBashHistory
-- TestExecuteScanShellFlagFiltersSources
-- TestExecuteScanRejectsUnsupportedShell
+- TestExecuteStatsEmptyIndex
+- TestExecuteStatsReportsShellAndSourceCounts
+- TestQueryHistoryStatsEmptyDatabase
+- TestQueryHistoryStatsGroupedCounts
+- TestQueryHistoryStatsRequiresDB
 
 Tests run:
 
@@ -139,49 +135,40 @@ Known failures:
 
 Decisions made:
 
-- Load an explicit config file only when `--config` is provided; otherwise scan uses default paths directly.
-- Detect all supported history sources by default, and apply shell filtering only when `--shell` is provided.
-- Initialize the SQLite schema on every scan before writing entries so first-run indexing stays self-contained.
-- Report a compact scan summary with sources, parsed entries, inserted rows, skipped rows, and warnings.
+- Carry forward prior decisions from session `009-scan-pipeline`.
+- Initialize the SQLite schema before reading stats so first-run stats on a new machine stays self-contained and returns zeros.
+- Keep the first stats report narrow: total indexed entries plus counts by shell and source.
+- Sort grouped counts by descending count and then ascending name for deterministic output.
 
 Commands run:
 
 - `git status --short --branch`
-- `git fetch origin main`
-- `git merge --ff-only origin/main`
-- `git checkout -b 009-scan-pipeline`
+- `git checkout -b 010-stats-command`
 - `sed -n '1,240p' AGENT.md`
 - `sed -n '1,220p' ROADMAP.md`
 - `sed -n '1,220p' SESSION.md`
 - `sed -n '1,220p' SKILLS/sqlite.md`
 - `sed -n '1,220p' SKILLS/testing.md`
-- `sed -n '1,220p' SKILLS/history-parsing.md`
 - `sed -n '1,220p' SKILLS/go-cli.md`
-- `sed -n '1,220p' internal/cli/doctor.go`
+- `sed -n '120,170p' README.md`
+- `sed -n '220,245p' docs/histkit-implementation-plan.md`
+- `sed -n '780,820p' docs/histkit-implementation-plan.md`
 - `sed -n '1,220p' internal/cli/stats.go`
-- `sed -n '1,220p' internal/config/config_test.go`
-- `sed -n '1,220p' internal/cli/root.go`
-- `sed -n '1,240p' internal/cli/root_test.go`
-- `rg -n "runScan|writeScanUsage|scan" internal/cli/*test.go internal/cli`
-- `sed -n '1,260p' internal/cli/scan.go`
-- `sed -n '1,260p' internal/config/config.go`
-- `sed -n '1,220p' internal/history/detect.go`
-- `sed -n '1,220p' internal/history/bash.go`
-- `sed -n '1,240p' internal/history/zsh.go`
-- `sed -n '1,220p' internal/index/writer.go`
-- `sed -n '1,220p' docs/histkit-implementation-plan.md`
-- `gofmt -w internal/cli/scan.go internal/cli/scan_test.go internal/cli/root.go internal/cli/root_test.go`
+- `sed -n '1,260p' internal/index/schema.go`
+- `sed -n '1,260p' internal/cli/scan_test.go`
+- `rg -n "stats" README.md docs/histkit-implementation-plan.md internal`
+- `gofmt -w internal/index/stats.go internal/index/stats_test.go internal/cli/stats.go internal/cli/stats_test.go internal/cli/root.go internal/cli/root_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- A compact scan summary is sufficient for this slice; per-source or per-warning reporting can wait for later reporting work.
+- A compact text report with total, per-shell, and per-source counts is sufficient for this slice.
 
 Risks introduced or reduced:
 
-- Reduced: `histkit scan` now exercises the real parser-to-index path under test instead of relying on a placeholder command.
-- Ongoing: duplicate handling is still defined by the current `(source_file, hash)` schema and may collapse repeated identical commands within one source file.
+- Reduced: `histkit stats` now exercises the real SQLite index instead of a placeholder path.
+- Ongoing: richer analytics such as duplicate reduction, common commands, and snippet totals remain deferred.
 
 Next recommended session:
 
-- `010-stats-command`
+- `011-doctor-command-v1`

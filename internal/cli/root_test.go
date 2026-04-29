@@ -31,7 +31,8 @@ func TestExecuteScanPlaceholder(t *testing.T) {
 }
 
 func TestExecuteStatsPlaceholder(t *testing.T) {
-	assertCommandOutput(t, []string{"stats"}, "stats are not available yet")
+	t.Setenv("HOME", t.TempDir())
+	assertCommandOutput(t, []string{"stats"}, "Indexed history entries: 0")
 }
 
 func TestExecuteDoctorPlaceholder(t *testing.T) {
