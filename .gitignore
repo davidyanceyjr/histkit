@@ -1,0 +1,24 @@
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Go
+/bin/
+/dist/
+*.test
+*.out
+coverage.txt
+
+# Local runtime data
+.history.db
+*.db
+*.db-shm
+*.db-wal
+
+# histkit local/generated
+.local/
+.cache/
+tmp/

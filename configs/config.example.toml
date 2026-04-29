@@ -1,0 +1,5 @@
+[general]
+default_shell = "bash"
+backup_history = true
+dry_run = true
+preview_diff = true
