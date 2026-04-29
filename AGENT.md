@@ -31,32 +31,75 @@ At the start of every session:
 2. Read `ROADMAP.md`.
 3. Read only the `SKILLS/` files relevant to the current slice.
 4. Inspect the repository state.
-5. Confirm the exact session objective.
-6. Implement only that objective.
+5. Identify the current working state:
+   - session objective
+   - active constraints
+   - relevant files
+   - known unresolved questions
+   - known risks
+   - expected test/build commands
+6. Confirm the exact session objective.
+7. Implement only that objective.
 
 At the end of every session:
 
 1. Run relevant tests.
 2. Record changed files.
-3. Record commands run.
-4. Record unresolved issues.
-5. Record next recommended session.
-6. Write a completed session note under `SESSIONS/`.
-7. Update `SESSION.md`.
+3. Record files read when they materially affected implementation.
+4. Record commands run.
+5. Record unresolved issues.
+6. Record decisions made.
+7. Record known risks introduced or reduced.
+8. Record next recommended session.
+9. Write a completed session note under `SESSIONS/`.
+10. Update `SESSION.md`.
+11. Ensure `SESSION.md` contains enough structured context for the next session to continue without rereading unrelated material.
+
+## Working state protocol
+
+For every implementation session, maintain a compact working state.
+
+The working state must track:
+
+- intent: the exact current objective
+- scope: files, packages, commands, or behavior in scope
+- constraints: safety, compatibility, roadmap, and CLI-contract limits
+- files read: paths and why they mattered
+- files changed: paths and what changed
+- commands run: command, purpose, and result
+- tests: added, changed, run, skipped, or failing
+- decisions: durable choices made during the session
+- assumptions: only documented `NON-BLOCKING` assumptions
+- unresolved questions: `BLOCKING` or `NON-BLOCKING`
+- next step: the smallest safe continuation slice
+
+Older context may be compacted only if this working state remains accurate.
+
+Do not replace structured working state with vague narrative summaries.
 
 ## Output discipline
 
 For every implementation session, produce:
 
 - summary
+- objective completed or not completed
+- files read
 - files changed
 - tests added
 - tests run
 - known failures
+- commands run
 - decisions made
+- assumptions made
+- unresolved questions
+- risks introduced or reduced
 - next slice recommendation
 
 ## Context control
+
+Treat active context as scarce working memory.
+
+Load only information needed for the current implementation slice.
 
 Do not load unrelated skills.
 
@@ -66,6 +109,43 @@ Do not solve future milestones early.
 
 Do not modify destructive cleanup behavior before the safe-apply milestone.
 
+Do not paste or carry forward large raw content unless it is directly needed for the next implementation step.
+
+Prefer compact references over bulk context:
+
+- file path plus relevant symbol
+- command plus result summary
+- error message plus failing test
+- decision plus source
+- unresolved question plus status
+
+Discard or summarize:
+
+- resolved error traces
+- redundant command output
+- irrelevant file contents
+- stale assumptions
+- unrelated roadmap items
+- completed implementation details already captured in session notes
+
+## Artifact tracking
+
+Track implementation artifacts explicitly.
+
+For each changed file, record:
+
+- path
+- purpose of the change
+- relevant tests
+- unresolved follow-up, if any
+
+For each materially read file, record:
+
+- path
+- why it mattered
+
+Do not rely on prose summaries alone to preserve file state.
+
 ## Safety boundary
 
 histkit handles shell history, which may contain credentials, internal hostnames, sensitive paths, private keys, tokens, and production commands.
@@ -73,6 +153,12 @@ histkit handles shell history, which may contain credentials, internal hostnames
 Any feature that deletes, rewrites, redacts, quarantines, or exports history must be treated as safety-sensitive.
 
 The default behavior must be reviewable and reversible.
+
+Context handling is part of the safety boundary.
+
+Do not copy, summarize, export, or persist sensitive shell-history content unless the current session objective explicitly requires it.
+
+When sensitive history content is needed for implementation or testing, prefer synthetic fixtures over real user history.
 
 ## Human-gated open-question protocol
 
@@ -152,3 +238,7 @@ When an unanswered question creates implementation risk, update `RISKS.md`.
 ### No silent assumptions
 
 If a question is not recorded, it is not allowed to influence implementation.
+
+Context gaps are not permission to guess.
+
+If missing context affects a safety-sensitive behavior, CLI contract, storage format, audit semantics, or restore behavior, classify the question before continuing.
