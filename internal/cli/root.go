@@ -53,7 +53,7 @@ func writeRootUsage(w io.Writer) {
 	fmt.Fprintln(w, "  histkit <command> [flags]")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Commands:")
-	fmt.Fprintln(w, "  scan    Parse history sources and update the local index (placeholder)")
+	fmt.Fprintln(w, "  scan    Parse history sources and update the local index")
 	fmt.Fprintln(w, "  stats   Show indexed history statistics (placeholder)")
 	fmt.Fprintln(w, "  doctor  Check the local histkit environment (placeholder)")
 	fmt.Fprintln(w)
