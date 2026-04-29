@@ -2,30 +2,30 @@
 
 ## Current session
 
-ID: `002-config-and-paths`
+ID: `003-history-model`
 
 Status: completed
 
 ## Objective
 
-Create the initial configuration and path-resolution package for histkit.
+Create the normalized history data model for histkit.
 
 ## Scope
 
 Implement:
 
-- `internal/config` package
-- default config values
-- config load from file path
-- explicit `~` path expansion
-- predictable default filesystem paths
-- `configs/config.example.toml`
+- `internal/history/model.go`
+- normalized `HistoryEntry` type
+- shell/source metadata fields
+- parse-warning metadata types needed by later parser slices
+- tests for model semantics
 
 ## Out of scope
 
-- command behavior changes beyond what config loading requires later
 - real history parsing
+- source detection
 - SQLite schema
+- index writing
 - sanitization
 - fzf integration
 - backups
@@ -34,23 +34,21 @@ Implement:
 
 ## Relevant skills
 
-- `SKILLS/config.md`
+- `SKILLS/history-parsing.md`
 - `SKILLS/testing.md`
 
 ## Acceptance criteria
 
 - `go test ./...` passes
-- default config loads with safe values
-- config file loading works from a provided path
-- invalid TOML is rejected
-- `~` path expansion is explicit and tested
-- example config is present and matches the minimal slice
+- `HistoryEntry` model exists with the planned normalized fields
+- optional timestamp/exit metadata are represented safely
+- model helpers are covered by deterministic unit tests
 
 ## Current repo state
 
-The CLI bootstrap exists.
+The CLI bootstrap and initial config/path packages exist.
 
-Config loading and default filesystem path handling do not exist yet.
+The normalized history model does not exist yet.
 
 ## Decisions already made
 
@@ -63,9 +61,9 @@ Config loading and default filesystem path handling do not exist yet.
 
 ## Risks to watch
 
-- Avoid introducing large config surface area too early.
-- Avoid baking in destructive or apply-time semantics.
-- Keep path expansion explicit and testable.
+- Avoid embedding parser behavior into the model slice.
+- Preserve raw history data without mutating or normalizing away source context.
+- Keep the model extensible for Bash and Zsh parser slices.
 
 ## Open questions
 
@@ -91,33 +89,26 @@ No questions answered yet.
 
 Summary:
 
-- Added the initial `internal/config` package with safe defaults.
-- Added config loading from file, explicit `~` expansion, and default filesystem path helpers.
-- Added a minimal example config and tests covering the slice.
+- Added the normalized history model in `internal/history`.
+- Added shell constants plus a parse-warning type for later parser slices.
+- Added validation and optional-metadata helpers with deterministic unit tests.
 
 Files changed:
 
-- go.mod
-- go.sum
-- internal/config/config.go
-- internal/config/config_test.go
-- configs/config.example.toml
-- SESSIONS/002-config-and-paths.md
+- internal/history/model.go
+- internal/history/model_test.go
+- SESSIONS/003-history-model.md
 
 Tests added:
 
-- TestDefault
-- TestLoadDefaultsWhenPathEmpty
-- TestLoadFromPath
-- TestLoadExampleConfig
-- TestLoadRejectsInvalidTOML
-- TestDefaultPaths
-- TestExpandUserPath
-- TestExpandUserPathRequiresHome
+- TestHistoryEntryValidate
+- TestHistoryEntryValidateRequiresFields
+- TestHistoryEntryOptionalMetadata
+- TestParseWarningValidate
+- TestParseWarningValidateRequiresFields
 
 Tests run:
 
-- `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go mod tidy`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Known failures:
@@ -126,9 +117,9 @@ Known failures:
 
 Decisions made:
 
-- Use `github.com/BurntSushi/toml` for initial TOML decoding.
-- Keep the first config slice limited to the `[general]` section and path helpers.
+- Keep the history model in its own `internal/history` package before parser implementations arrive.
+- Include a `ParseWarning` type in this slice so later parsers can report malformed lines without silently dropping them.
 
 Next recommended session:
 
-- `003-history-model`
+- `004-bash-parser`
