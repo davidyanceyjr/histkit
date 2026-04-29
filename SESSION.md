@@ -2,29 +2,28 @@
 
 ## Current session
 
-ID: `004-bash-parser`
+ID: `005-zsh-parser`
 
 Status: completed
 
 ## Objective
 
-Implement the initial Bash history parser for plain line-oriented history files.
+Implement the initial Zsh history parser for extended history lines.
 
 ## Scope
 
 Implement:
 
-- `internal/history/bash.go`
-- plain Bash history parsing from an `io.Reader`
-- fixture-driven tests for Bash history parsing
-- warning behavior for invalid Bash lines
+- `internal/history/zsh.go`
+- Zsh extended history parsing from an `io.Reader`
+- fixture-driven tests for Zsh history parsing
+- warning behavior for malformed Zsh metadata prefixes
 
 ## Out of scope
 
-- `HISTTIMEFORMAT` parsing
 - multiline reconstruction
 - source detection
-- Zsh parsing
+- Bash parser changes unless required for shared parser behavior
 - SQLite schema
 - index writing
 - sanitization
@@ -38,16 +37,16 @@ Implement:
 ## Acceptance criteria
 
 - `go test ./...` passes
-- plain Bash history lines parse into normalized `HistoryEntry` values
-- empty lines are handled deterministically
-- parser preserves raw lines and command text
+- Zsh extended history lines parse into normalized `HistoryEntry` values
+- malformed Zsh prefixes are reported as warnings
+- commands containing semicolons are preserved correctly
 - no history files are modified
 
 ## Current repo state
 
-The CLI bootstrap, config/path package, and normalized history model exist.
+The CLI bootstrap, config/path package, history model, and Bash parser exist.
 
-No shell history parser exists yet.
+Zsh history parsing does not exist yet.
 
 ## Decisions already made
 
@@ -60,9 +59,9 @@ No shell history parser exists yet.
 
 ## Risks to watch
 
-- Do not infer Bash timestamps from ambiguous formats in this slice.
-- Preserve raw lines without mutating command text.
-- Avoid overreaching into source detection or serialization.
+- Do not treat Zsh duration metadata as exit code.
+- Preserve command text after the first metadata separator semicolon.
+- Report malformed metadata without silently dropping source lines.
 
 ## Open questions
 
@@ -88,23 +87,24 @@ No questions answered yet.
 
 Summary:
 
-- Added the initial plain-line Bash parser in `internal/history`.
-- Preserved raw lines and command text for valid entries.
-- Added warning behavior for whitespace-only lines and fixture-driven parser tests.
+- Added the initial Zsh extended-history parser in `internal/history`.
+- Parsed reliable timestamps and preserved command text after the first metadata separator.
+- Added warning behavior for malformed prefixes and fixture-driven parser tests.
 
 Files changed:
 
-- internal/history/bash.go
-- internal/history/bash_test.go
-- testdata/history/bash/plain.hist
-- SESSIONS/004-bash-parser.md
+- internal/history/zsh.go
+- internal/history/zsh_test.go
+- testdata/history/zsh/extended.hist
+- SESSIONS/005-zsh-parser.md
 
 Tests added:
 
-- TestParseBashFixture
-- TestParseBashEmptyInput
-- TestParseBashRequiresSourceFile
-- TestParseBashRequiresReader
+- TestParseZshFixture
+- TestParseZshMalformedPrefixWarning
+- TestParseZshEmptyInput
+- TestParseZshRequiresSourceFile
+- TestParseZshRequiresReader
 
 Tests run:
 
@@ -116,9 +116,10 @@ Known failures:
 
 Decisions made:
 
-- Treat empty Bash history lines as ignorable input.
-- Treat whitespace-only Bash history lines as parse warnings so they are not silently converted into invalid commands.
+- Parse the first Zsh metadata field as a reliable timestamp.
+- Validate the duration field for structure but do not map it onto `ExitCode`.
+- Preserve everything after the first `;` as the command text, including additional semicolons.
 
 Next recommended session:
 
-- `005-zsh-parser`
+- `006-source-detection`

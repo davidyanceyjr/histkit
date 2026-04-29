@@ -1,0 +1,6 @@
+: 1712959000:0;git status
+: 1712959015:2;echo 'hello;world'
+
+   
+: 1712959030:4;  ls -la
+: 1712959045:6;printf '%s\n' foo; printf '%s\n' bar
