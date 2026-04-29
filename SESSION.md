@@ -2,26 +2,25 @@
 
 ## Current session
 
-ID: `008-index-writer`
+ID: `009-scan-pipeline`
 
 Status: completed
 
 ## Objective
 
-Implement the initial SQLite write layer for normalized history entries.
+Implement the initial `scan` pipeline from source detection through SQLite indexing.
 
 ## Scope
 
 Implement:
 
-- `internal/index` write helpers for `history_entries`
-- deterministic ID/hash generation for stored entries
-- transactional insert behavior with duplicate skipping
-- deterministic tests using temporary databases
+- `internal/cli/scan.go`
+- shell source detection, parsing, and SQLite indexing flow
+- scan summary output
+- deterministic CLI tests using temporary home directories
 
 ## Out of scope
 
-- scan command integration
 - stats queries
 - run metadata writer logic
 - sanitizer metadata tables
@@ -34,20 +33,21 @@ Implement:
 - `SKILLS/sqlite.md`
 - `SKILLS/testing.md`
 - `SKILLS/history-parsing.md`
+- `SKILLS/go-cli.md`
 
 ## Acceptance criteria
 
 - `go test ./...` passes
-- history entries can be written through an `internal/index` API
-- missing IDs and hashes are derived deterministically
-- duplicate entries for the same source/hash are skipped without error
-- stored rows preserve parsed metadata safely
+- `histkit scan` detects supported history sources and writes parsed entries to SQLite
+- `histkit scan --shell <shell>` limits ingest to one shell
+- the scan path remains non-destructive and only reads history files
+- deterministic CLI tests cover indexing through a temporary home directory
 
 ## Current repo state
 
-The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, source detection, SQLite schema initialization, and history-entry writer now exist.
+The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, source detection, SQLite schema initialization, history-entry writer, and the initial scan pipeline now exist.
 
-The scan command is still a placeholder and is not wired into the index yet.
+The stats command is still a placeholder and no aggregated reporting exists yet.
 
 ## Decisions already made
 
@@ -61,7 +61,7 @@ The scan command is still a placeholder and is not wired into the index yet.
 ## Risks to watch
 
 - Keep migrations explicit from the first schema version.
-- Keep writer behavior scoped to `internal/index`; do not pull `scan` forward early.
+- Keep scan behavior conservative and read-only.
 - Preserve safe nullability for metadata that parsers may not always populate.
 
 ## Open questions
@@ -88,16 +88,18 @@ No questions answered yet.
 
 Summary:
 
-- Added a transactional SQLite writer for normalized `history_entries`.
-- Derived stable command hashes and entry IDs when the parser did not provide them.
-- Added deterministic temporary-database tests for insert, duplicate skipping, and rollback behavior.
+- Replaced the scan placeholder with an end-to-end source-detection, parse, schema-init, and index-write pipeline.
+- Added `scan` support for `--shell` and `--config` flags with conservative, read-only behavior.
+- Added temporary-home CLI tests that verify indexing, shell filtering, and unsupported-shell errors.
 
 Files changed:
 
 - SESSION.md
-- internal/index/writer.go
-- internal/index/writer_test.go
-- SESSIONS/008-index-writer.md
+- internal/cli/root.go
+- internal/cli/root_test.go
+- internal/cli/scan.go
+- internal/cli/scan_test.go
+- SESSIONS/009-scan-pipeline.md
 
 Files read:
 
@@ -107,22 +109,25 @@ Files read:
 - SKILLS/sqlite.md
 - SKILLS/testing.md
 - SKILLS/history-parsing.md
-- docs/histkit-implementation-plan.md
+- SKILLS/go-cli.md
 - internal/config/config.go
+- internal/config/config_test.go
+- internal/cli/root.go
+- internal/cli/root_test.go
+- internal/cli/doctor.go
+- internal/cli/stats.go
 - internal/cli/scan.go
-- internal/history/model.go
 - internal/history/detect.go
 - internal/history/bash.go
 - internal/history/zsh.go
-- internal/index/schema.go
-- internal/index/schema_test.go
+- internal/index/writer.go
+- docs/histkit-implementation-plan.md
 
 Tests added:
 
-- TestWriteHistoryEntriesDerivesFieldsAndStoresMetadata
-- TestWriteHistoryEntriesSkipsDuplicateSourceAndHash
-- TestWriteHistoryEntriesRollsBackOnInvalidEntry
-- TestWriteHistoryEntriesRequiresDB
+- TestExecuteScanIndexesBashHistory
+- TestExecuteScanShellFlagFiltersSources
+- TestExecuteScanRejectsUnsupportedShell
 
 Tests run:
 
@@ -134,48 +139,49 @@ Known failures:
 
 Decisions made:
 
-- Carry forward prior decisions from session `007-sqlite-schema`.
-- Compute missing entry hashes from the normalized `Command` field with SHA-256.
-- Compute missing entry IDs deterministically from stable entry metadata plus the derived hash.
-- Treat duplicate writes as non-fatal skips through `INSERT OR IGNORE` so future scans can be idempotent against the current schema.
+- Load an explicit config file only when `--config` is provided; otherwise scan uses default paths directly.
+- Detect all supported history sources by default, and apply shell filtering only when `--shell` is provided.
+- Initialize the SQLite schema on every scan before writing entries so first-run indexing stays self-contained.
+- Report a compact scan summary with sources, parsed entries, inserted rows, skipped rows, and warnings.
 
 Commands run:
 
 - `git status --short --branch`
-- `git branch --list`
-- `git checkout -b 007-sqlite-schema`
+- `git fetch origin main`
+- `git merge --ff-only origin/main`
+- `git checkout -b 009-scan-pipeline`
 - `sed -n '1,240p' AGENT.md`
-- `sed -n '1,220p' docs/histkit-implementation-plan.md`
 - `sed -n '1,220p' ROADMAP.md`
 - `sed -n '1,220p' SESSION.md`
 - `sed -n '1,220p' SKILLS/sqlite.md`
 - `sed -n '1,220p' SKILLS/testing.md`
 - `sed -n '1,220p' SKILLS/history-parsing.md`
-- `sed -n '1,240p' internal/history/model.go`
+- `sed -n '1,220p' SKILLS/go-cli.md`
+- `sed -n '1,220p' internal/cli/doctor.go`
+- `sed -n '1,220p' internal/cli/stats.go`
+- `sed -n '1,220p' internal/config/config_test.go`
+- `sed -n '1,220p' internal/cli/root.go`
+- `sed -n '1,240p' internal/cli/root_test.go`
+- `rg -n "runScan|writeScanUsage|scan" internal/cli/*test.go internal/cli`
 - `sed -n '1,260p' internal/cli/scan.go`
-- `sed -n '1,260p' internal/index/schema.go`
-- `rg -n "history\\.db|scan pipeline|index writer|ingest|InitSchema|HistoryEntry" internal docs README.md configs`
 - `sed -n '1,260p' internal/config/config.go`
 - `sed -n '1,220p' internal/history/detect.go`
 - `sed -n '1,220p' internal/history/bash.go`
 - `sed -n '1,240p' internal/history/zsh.go`
-- `rg -n "008-index-writer|scan pipeline|normalized entries are stored|update SQLite index|hash" docs/histkit-implementation-plan.md README.md ROADMAP.md`
-- `sed -n '240,360p' docs/histkit-implementation-plan.md`
-- `sed -n '360,460p' docs/histkit-implementation-plan.md`
-- `sed -n '1,220p' internal/index/schema_test.go`
-- `sed -n '1,80p' go.mod`
-- `gofmt -w internal/index/writer.go internal/index/writer_test.go`
+- `sed -n '1,220p' internal/index/writer.go`
+- `sed -n '1,220p' docs/histkit-implementation-plan.md`
+- `gofmt -w internal/cli/scan.go internal/cli/scan_test.go internal/cli/root.go internal/cli/root_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- Hashing the normalized `Command` field is a safe temporary basis for dedupe because the schema already treats `(source_file, hash)` as the uniqueness boundary.
+- A compact scan summary is sufficient for this slice; per-source or per-warning reporting can wait for later reporting work.
 
 Risks introduced or reduced:
 
-- Reduced: the index now has a tested, transactional write path instead of requiring ad hoc SQL in future slices.
-- Ongoing: the current schema still collapses repeated identical commands within the same source file because uniqueness is keyed by `(source_file, hash)`.
+- Reduced: `histkit scan` now exercises the real parser-to-index path under test instead of relying on a placeholder command.
+- Ongoing: duplicate handling is still defined by the current `(source_file, hash)` schema and may collapse repeated identical commands within one source file.
 
 Next recommended session:
 
-- `009-scan-pipeline`
+- `010-stats-command`

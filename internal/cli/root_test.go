@@ -26,7 +26,8 @@ func TestExecuteHelp(t *testing.T) {
 }
 
 func TestExecuteScanPlaceholder(t *testing.T) {
-	assertCommandOutput(t, []string{"scan"}, "scan is not implemented yet")
+	t.Setenv("HOME", t.TempDir())
+	assertCommandOutput(t, []string{"scan"}, "scan complete:")
 }
 
 func TestExecuteStatsPlaceholder(t *testing.T) {
