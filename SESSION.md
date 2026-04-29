@@ -2,51 +2,50 @@
 
 ## Current session
 
-ID: `006-source-detection`
+ID: `007-sqlite-schema`
 
 Status: completed
 
 ## Objective
 
-Implement initial shell history source detection for Bash and Zsh.
+Implement the initial SQLite schema for normalized history entries and run metadata.
 
 ## Scope
 
 Implement:
 
-- `internal/history/detect.go`
-- canonical Bash and Zsh history source candidates
-- filtering by supported shell name
-- parser selection for detected sources
-- deterministic tests for detection behavior
+- `internal/index/schema.go`
+- explicit schema initialization
+- initial `history_entries` and `runs` tables
+- deterministic schema tests using temporary databases
 
 ## Out of scope
 
-- custom shell history path discovery
-- CLI wiring for `--shell`
-- SQLite schema
-- index writing
-- sanitization
+- scan/index writer logic
+- stats queries beyond what schema tests need
+- sanitizer metadata tables
+- snippet tables
+- backup tables
 - destructive cleanup
 
 ## Relevant skills
 
-- `SKILLS/history-parsing.md`
+- `SKILLS/sqlite.md`
 - `SKILLS/testing.md`
 
 ## Acceptance criteria
 
 - `go test ./...` passes
-- supported history sources are detected from canonical paths
-- missing source files are ignored deterministically
-- unsupported shell names are rejected clearly
-- parser selection is available for supported shells
+- SQLite schema initializes successfully in a temporary database
+- `history_entries` and `runs` tables exist
+- dedupe by `source_file` and `hash` is enforced
+- database can be reopened after initialization
 
 ## Current repo state
 
-The CLI bootstrap, config/path package, history model, and Bash/Zsh parsers exist.
+The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, and source detection exist.
 
-History source detection does not exist yet.
+SQLite schema initialization does not exist yet.
 
 ## Decisions already made
 
@@ -59,9 +58,9 @@ History source detection does not exist yet.
 
 ## Risks to watch
 
-- Keep source detection limited to canonical paths in this slice.
-- Do not overreach into CLI integration or parser execution.
-- Reject unsupported shell filters clearly.
+- Keep migrations explicit from the first schema version.
+- Do not introduce index-writing behavior early.
+- Preserve safe nullability for metadata that parsers may not always populate.
 
 ## Open questions
 
@@ -73,14 +72,7 @@ No blocking questions currently recorded.
 
 ### NON-BLOCKING
 
-#### Q001: Should initial source detection support only canonical `~/.bash_history` and `~/.zsh_history` paths?
-
-- Area: source detection defaults
-- Temporary assumption: yes, detect only canonical Bash and Zsh history paths in slice `006`
-- Why non-blocking: configurable/custom history path support can be added later without changing parser correctness
-- Why assumption is safe: it narrows behavior conservatively and does not mutate data
-- Reversal cost: low
-- Status: assumed-non-blocking
+No non-blocking questions currently recorded.
 
 ## Answer log
 
@@ -94,30 +86,29 @@ No questions answered yet.
 
 Summary:
 
-- Added initial history source detection in `internal/history`.
-- Added canonical Bash/Zsh source candidates, shell filtering, and parser lookup.
-- Added deterministic detection tests and recorded the canonical-path assumption.
+- Added the initial SQLite schema layer in `internal/index`.
+- Added `history_entries` and `runs` tables plus a dedupe index for source/hash.
+- Added temporary-database schema tests and the SQLite driver dependency.
 
 Files changed:
 
-- internal/history/detect.go
-- internal/history/detect_test.go
-- docs/OPEN_QUESTIONS.md
-- SESSIONS/006-source-detection.md
+- go.mod
+- go.sum
+- internal/index/schema.go
+- internal/index/schema_test.go
+- SESSIONS/007-sqlite-schema.md
 
 Tests added:
 
-- TestCandidateSources
-- TestCandidateSourcesRequiresHome
-- TestDetectSourcesFindsExistingFiles
-- TestDetectSourcesFiltersByShell
-- TestDetectSourcesIgnoresMissingFiles
-- TestDetectSourcesRejectsUnsupportedShell
-- TestParserForShell
-- TestParserForShellRejectsUnsupportedShell
+- TestOpenRequiresPath
+- TestInitSchemaCreatesTables
+- TestHistoryEntriesDedupeBySourceAndHash
+- TestRunsInsertAndReopenDatabase
+- TestInitSchemaRequiresDB
 
 Tests run:
 
+- `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go mod tidy`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Known failures:
@@ -126,9 +117,10 @@ Known failures:
 
 Decisions made:
 
-- Detect only canonical `~/.bash_history` and `~/.zsh_history` files in the initial source-detection slice.
-- Keep parser lookup alongside source detection so later scan wiring can resolve supported parsers cleanly.
+- Use `modernc.org/sqlite` for the initial SQLite schema layer.
+- Start schema versioning immediately with `PRAGMA user_version = 1`.
+- Enforce dedupe through a partial unique index on `(source_file, hash)` only when `hash` is present.
 
 Next recommended session:
 
-- `007-sqlite-schema`
+- `008-index-writer`
