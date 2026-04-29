@@ -2,34 +2,32 @@
 
 ## Current session
 
-ID: `003-history-model`
+ID: `004-bash-parser`
 
 Status: completed
 
 ## Objective
 
-Create the normalized history data model for histkit.
+Implement the initial Bash history parser for plain line-oriented history files.
 
 ## Scope
 
 Implement:
 
-- `internal/history/model.go`
-- normalized `HistoryEntry` type
-- shell/source metadata fields
-- parse-warning metadata types needed by later parser slices
-- tests for model semantics
+- `internal/history/bash.go`
+- plain Bash history parsing from an `io.Reader`
+- fixture-driven tests for Bash history parsing
+- warning behavior for invalid Bash lines
 
 ## Out of scope
 
-- real history parsing
+- `HISTTIMEFORMAT` parsing
+- multiline reconstruction
 - source detection
+- Zsh parsing
 - SQLite schema
 - index writing
 - sanitization
-- fzf integration
-- backups
-- systemd units
 - destructive cleanup
 
 ## Relevant skills
@@ -40,15 +38,16 @@ Implement:
 ## Acceptance criteria
 
 - `go test ./...` passes
-- `HistoryEntry` model exists with the planned normalized fields
-- optional timestamp/exit metadata are represented safely
-- model helpers are covered by deterministic unit tests
+- plain Bash history lines parse into normalized `HistoryEntry` values
+- empty lines are handled deterministically
+- parser preserves raw lines and command text
+- no history files are modified
 
 ## Current repo state
 
-The CLI bootstrap and initial config/path packages exist.
+The CLI bootstrap, config/path package, and normalized history model exist.
 
-The normalized history model does not exist yet.
+No shell history parser exists yet.
 
 ## Decisions already made
 
@@ -61,9 +60,9 @@ The normalized history model does not exist yet.
 
 ## Risks to watch
 
-- Avoid embedding parser behavior into the model slice.
-- Preserve raw history data without mutating or normalizing away source context.
-- Keep the model extensible for Bash and Zsh parser slices.
+- Do not infer Bash timestamps from ambiguous formats in this slice.
+- Preserve raw lines without mutating command text.
+- Avoid overreaching into source detection or serialization.
 
 ## Open questions
 
@@ -89,23 +88,23 @@ No questions answered yet.
 
 Summary:
 
-- Added the normalized history model in `internal/history`.
-- Added shell constants plus a parse-warning type for later parser slices.
-- Added validation and optional-metadata helpers with deterministic unit tests.
+- Added the initial plain-line Bash parser in `internal/history`.
+- Preserved raw lines and command text for valid entries.
+- Added warning behavior for whitespace-only lines and fixture-driven parser tests.
 
 Files changed:
 
-- internal/history/model.go
-- internal/history/model_test.go
-- SESSIONS/003-history-model.md
+- internal/history/bash.go
+- internal/history/bash_test.go
+- testdata/history/bash/plain.hist
+- SESSIONS/004-bash-parser.md
 
 Tests added:
 
-- TestHistoryEntryValidate
-- TestHistoryEntryValidateRequiresFields
-- TestHistoryEntryOptionalMetadata
-- TestParseWarningValidate
-- TestParseWarningValidateRequiresFields
+- TestParseBashFixture
+- TestParseBashEmptyInput
+- TestParseBashRequiresSourceFile
+- TestParseBashRequiresReader
 
 Tests run:
 
@@ -117,9 +116,9 @@ Known failures:
 
 Decisions made:
 
-- Keep the history model in its own `internal/history` package before parser implementations arrive.
-- Include a `ParseWarning` type in this slice so later parsers can report malformed lines without silently dropping them.
+- Treat empty Bash history lines as ignorable input.
+- Treat whitespace-only Bash history lines as parse warnings so they are not silently converted into invalid commands.
 
 Next recommended session:
 
-- `004-bash-parser`
+- `005-zsh-parser`
