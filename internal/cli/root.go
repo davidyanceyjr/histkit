@@ -16,6 +16,8 @@ func Execute(args []string, stdout, stderr io.Writer) error {
 		return runHelp(args[1:], stdout)
 	case "scan":
 		return runScan(args[1:], stdout)
+	case "pick":
+		return runPick(args[1:], stdout)
 	case "stats":
 		return runStats(args[1:], stdout)
 	case "doctor":
@@ -35,6 +37,8 @@ func runHelp(args []string, stdout io.Writer) error {
 	switch args[0] {
 	case "scan":
 		writeScanUsage(stdout)
+	case "pick":
+		writePickUsage(stdout)
 	case "stats":
 		writeStatsUsage(stdout)
 	case "doctor":
@@ -54,6 +58,7 @@ func writeRootUsage(w io.Writer) {
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Commands:")
 	fmt.Fprintln(w, "  scan    Parse history sources and update the local index")
+	fmt.Fprintln(w, "  pick    Select a command from indexed history and snippets")
 	fmt.Fprintln(w, "  stats   Show indexed history statistics")
 	fmt.Fprintln(w, "  doctor  Check the local histkit environment")
 	fmt.Fprintln(w)

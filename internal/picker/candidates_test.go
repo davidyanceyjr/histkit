@@ -41,7 +41,7 @@ func TestLoadCandidatesMergesHistoryAndSnippets(t *testing.T) {
 		t.Fatalf("Save returned error: %v", err)
 	}
 
-	candidates, err := LoadCandidates(db, store, false, 20)
+	candidates, err := LoadCandidates(db, store, true, false, 20)
 	if err != nil {
 		t.Fatalf("LoadCandidates returned error: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestLoadCandidatesIncludesMissingBuiltinsWithoutOverwritingUserSnippets(t *
 		t.Fatalf("Save returned error: %v", err)
 	}
 
-	candidates, err := LoadCandidates(db, store, true, 20)
+	candidates, err := LoadCandidates(db, store, true, true, 20)
 	if err != nil {
 		t.Fatalf("LoadCandidates returned error: %v", err)
 	}
@@ -119,6 +119,32 @@ func TestParseSelectedLine(t *testing.T) {
 
 	if _, err := ParseSelectedLine("plain text"); err == nil {
 		t.Fatal("ParseSelectedLine returned nil error for unsupported format")
+	}
+}
+
+func TestLoadCandidatesSkipsSnippetsWhenDisabled(t *testing.T) {
+	db := openPickerDB(t)
+	defer db.Close()
+
+	store := snippets.Store{Path: filepath.Join(t.TempDir(), "snippets.toml")}
+	if err := store.Save([]snippets.Snippet{
+		{
+			ID:          "echo-test",
+			Title:       "Echo test",
+			Command:     "echo test",
+			Description: "Emit a test string",
+			Safety:      snippets.SafetyLow,
+		},
+	}); err != nil {
+		t.Fatalf("Save returned error: %v", err)
+	}
+
+	candidates, err := LoadCandidates(db, store, false, true, 20)
+	if err != nil {
+		t.Fatalf("LoadCandidates returned error: %v", err)
+	}
+	if len(candidates) != 0 {
+		t.Fatalf("len(candidates) = %d, want 0 when snippets disabled and no history", len(candidates))
 	}
 }
 

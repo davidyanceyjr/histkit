@@ -28,18 +28,21 @@ func (c Candidate) Display() string {
 	return c.Label + "  " + c.Command
 }
 
-func LoadCandidates(db *sql.DB, store snippets.Store, includeBuiltins bool, historyLimit int) ([]Candidate, error) {
+func LoadCandidates(db *sql.DB, store snippets.Store, snippetsEnabled bool, includeBuiltins bool, historyLimit int) ([]Candidate, error) {
 	historyEntries, err := index.QueryRecentHistoryEntries(db, historyLimit)
 	if err != nil {
 		return nil, err
 	}
 
-	userSnippets, err := store.List()
-	if err != nil {
-		return nil, err
+	userSnippets := []snippets.Snippet{}
+	if snippetsEnabled {
+		userSnippets, err = store.List()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	mergedSnippets := mergeSnippets(userSnippets, includeBuiltins)
+	mergedSnippets := mergeSnippets(userSnippets, snippetsEnabled && includeBuiltins)
 	candidates := make([]Candidate, 0, len(historyEntries)+len(mergedSnippets))
 	for _, entry := range historyEntries {
 		candidates = append(candidates, Candidate{

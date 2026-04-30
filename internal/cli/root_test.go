@@ -23,6 +23,9 @@ func TestExecuteHelp(t *testing.T) {
 	if !strings.Contains(stdout.String(), "scan") {
 		t.Fatalf("expected command list in help output, got %q", stdout.String())
 	}
+	if !strings.Contains(stdout.String(), "pick") {
+		t.Fatalf("expected pick command in help output, got %q", stdout.String())
+	}
 }
 
 func TestExecuteScanPlaceholder(t *testing.T) {
