@@ -2,29 +2,29 @@
 
 ## Current session
 
-ID: `022-trivial-command-rules`
+ID: `023-dry-run-preview`
 
 Status: completed
 
 ## Objective
 
-Add the initial curated built-in trivial-command and noise-rule catalog for history hygiene.
+Add the initial non-destructive dry-run preview layer for cleanup matches.
 
 ## Scope
 
 Implement:
 
-- built-in trivial/noise rule definitions
-- helper to evaluate normalized history entries against that built-in hygiene rule set
-- tests for true positives and false-positive guards
+- package-level preview report types
+- preview generation over normalized history entries using built-in secret and trivial rules
+- text rendering for reviewable dry-run output
+- preview-focused tests
 
 ## Out of scope
 
-- user-configurable cleanup rule loading
-- dry-run preview output
+- CLI `clean --dry-run` wiring
 - quarantine persistence
 - cleanup apply behavior
-- dedupe or stale-entry logic
+- backup or audit record storage
 
 ## Relevant skills
 
@@ -33,15 +33,14 @@ Implement:
 
 ## Acceptance criteria
 
-- repository contains a curated initial trivial/noise rule catalog
-- initial detections cover trivial commands like `clear`, `pwd`, `ls`, and `ll`
-- large accidental paste blobs remain classed as hygiene noise
-- broad false positives remain guarded against
+- repository contains a dry-run preview layer over existing sanitizer rules
+- preview output includes matched rule, confidence, action, original value, transformed value when redacted, and reason
+- preview generation remains non-destructive
 - `go test ./...` passes
 
 ## Current repo state
 
-The repository now includes a curated built-in trivial-command and noise rule catalog in `internal/sanitize` plus a `MatchTrivialRules` helper that applies those rules to normalized history entries.
+The repository now has a package-level dry-run preview layer in `internal/sanitize` that analyzes normalized history entries against the built-in rule catalogs and renders reviewable text output.
 
 ## Decisions already made
 
@@ -54,8 +53,8 @@ The repository now includes a curated built-in trivial-command and noise rule ca
 
 ## Risks to watch
 
-- The built-in trivial catalog is still intentionally narrow and not yet configurable from TOML.
-- Exact-match trivial rules deliberately avoid matching compound commands like `pwd && ls`.
+- The preview layer is not wired into a `clean` command yet.
+- Text rendering is intentionally simple and may need richer formatting later.
 
 ## Open questions
 
@@ -81,16 +80,16 @@ No questions answered yet.
 
 Summary:
 
-- Added `internal/sanitize/trivial.go` with the first curated built-in trivial/noise rule catalog.
-- Added `MatchTrivialRules` to run normalized history entries through that catalog.
-- Added tests for expected trivial detections and false-positive guard cases.
+- Added `internal/sanitize/preview.go` with preview report types, preview generation helpers, and text rendering.
+- Combined built-in secret and trivial rules into a non-destructive preview flow over normalized history entries.
+- Added tests for counts-by-action reporting, required preview fields, and no-mutation behavior.
 
 Files changed:
 
-- internal/sanitize/trivial.go
-- internal/sanitize/trivial_test.go
+- internal/sanitize/preview.go
+- internal/sanitize/preview_test.go
 - SESSION.md
-- SESSIONS/022-trivial-command-rules.md
+- SESSIONS/023-dry-run-preview.md
 
 Files read:
 
@@ -99,14 +98,16 @@ Files read:
 - SKILLS/sanitizer.md
 - docs/histkit-implementation-plan.md
 - README.md
+- internal/sanitize/model.go
 - internal/sanitize/secrets.go
-- internal/sanitize/secrets_test.go
+- internal/sanitize/trivial.go
 
 Tests added:
 
-- `TestBuiltinTrivialRulesValidate`
-- `TestMatchTrivialRulesTruePositives`
-- `TestMatchTrivialRulesFalsePositiveGuards`
+- `TestPreviewEntryReturnsMatchesWithoutMutatingEntry`
+- `TestPreviewEntriesCountsActionsAcrossSecretAndTrivialRules`
+- `TestRenderPreviewTextIncludesRequiredFields`
+- `TestRenderPreviewTextHandlesNoMatches`
 
 Tests run:
 
@@ -118,35 +119,37 @@ Known failures:
 
 Decisions made:
 
-- Keep the initial trivial/noise catalog built-in and curated rather than loading from config yet.
-- Use delete for narrow exact-match trivial commands.
-- Use quarantine for large accidental paste blobs as hygiene noise.
+- Preview generation should include only matched entries while still tracking total scanned entries.
+- Dry-run preview should aggregate both secret and trivial rule catalogs.
+- Text rendering should show transformed values only for redact actions.
 
 Commands run:
 
-- `git checkout -b 022-trivial-command-rules`
+- `git checkout -b 023-dry-run-preview`
 - `sed -n '1,220p' SESSION.md`
 - `sed -n '1,220p' ROADMAP.md`
 - `sed -n '1,220p' SKILLS/sanitizer.md`
-- `rg -n "trivial|noise|cleanup|dedupe|drop_trivial|commands =|clear|pwd|ls|ll|large paste" docs/histkit-implementation-plan.md README.md -S`
-- `sed -n '300,360p' docs/histkit-implementation-plan.md`
-- `sed -n '40,48p' README.md`
-- `sed -n '396,408p' README.md`
-- `sed -n '1,240p' internal/sanitize/secrets.go`
-- `sed -n '1,260p' internal/sanitize/secrets_test.go`
-- `gofmt -w internal/sanitize/trivial.go internal/sanitize/trivial_test.go`
+- `rg -n "dry-run|preview|matched rule|reason|action|transformed value|counts by action|confidence" docs/histkit-implementation-plan.md README.md -S`
+- `sed -n '570,586p' docs/histkit-implementation-plan.md`
+- `sed -n '714,722p' docs/histkit-implementation-plan.md`
+- `sed -n '298,304p' README.md`
+- `rg --files internal/sanitize`
+- `sed -n '1,260p' internal/sanitize/model.go`
+- `sed -n '1,260p' internal/sanitize/secrets.go`
+- `sed -n '1,260p' internal/sanitize/trivial.go`
+- `gofmt -w internal/sanitize/preview.go internal/sanitize/preview_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- Exact-match-only trivial command handling is the safest first slice for noise cleanup.
-- Treating large paste blobs as hygiene noise is acceptable even though they can also overlap with security concerns.
+- A package-level preview generator is sufficient for this slice before CLI wiring exists.
+- Simple text rendering is acceptable so long as all required review fields are present.
 
 Risks introduced or reduced:
 
-- Reduced: the sanitizer now has a separate built-in hygiene rule set rather than overloading secret detection for cleanup noise.
-- Ongoing: broader hygiene logic like dedupe or stale-entry handling still needs later slices.
+- Reduced: the sanitizer engine now has a concrete, non-destructive preview layer for later CLI integration.
+- Ongoing: preview UX and richer formatting still need later polish.
 
 Next recommended session:
 
-- `023-dry-run-preview`
+- `024-quarantine-records`
