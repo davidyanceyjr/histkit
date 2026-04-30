@@ -63,8 +63,11 @@ func MatchRule(command string, rule Rule) (RuleMatch, bool, error) {
 		Before:     command,
 	}
 	if rule.Action == ActionRedact {
-		// Real redaction transforms land in the next slice; keep the match shape valid for now.
-		match.After = command
+		after, err := RedactCommand(command, rule)
+		if err != nil {
+			return RuleMatch{}, false, fmt.Errorf("apply redaction: %w", err)
+		}
+		match.After = after
 	}
 
 	return match, true, nil
@@ -83,12 +86,7 @@ func matchesRule(command string, rule Rule) (bool, error) {
 		}
 		return re.MatchString(command), nil
 	case RuleKeywordGroup:
-		for _, keyword := range rule.Keywords {
-			if !strings.Contains(command, keyword) {
-				return false, nil
-			}
-		}
-		return true, nil
+		return keywordGroupMatches(command, rule.Keywords), nil
 	case RuleHeuristic:
 		detector, ok := heuristicDetectors[rule.Detector]
 		if !ok {
@@ -102,28 +100,32 @@ func matchesRule(command string, rule Rule) (bool, error) {
 
 func hasHighEntropyToken(command string) bool {
 	for _, token := range tokenize(command) {
-		if len(token) < 24 {
-			continue
-		}
-
-		var hasUpper, hasLower, hasDigit bool
-		for _, r := range token {
-			switch {
-			case unicode.IsUpper(r):
-				hasUpper = true
-			case unicode.IsLower(r):
-				hasLower = true
-			case unicode.IsDigit(r):
-				hasDigit = true
-			}
-		}
-
-		if hasUpper && hasLower && hasDigit {
+		if isHighEntropyToken(token) {
 			return true
 		}
 	}
 
 	return false
+}
+
+func isHighEntropyToken(token string) bool {
+	if len(token) < 24 {
+		return false
+	}
+
+	var hasUpper, hasLower, hasDigit bool
+	for _, r := range token {
+		switch {
+		case unicode.IsUpper(r):
+			hasUpper = true
+		case unicode.IsLower(r):
+			hasLower = true
+		case unicode.IsDigit(r):
+			hasDigit = true
+		}
+	}
+
+	return hasUpper && hasLower && hasDigit
 }
 
 func hasLargePasteBlob(command string) bool {

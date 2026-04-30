@@ -135,10 +135,30 @@ func TestMatchRule(t *testing.T) {
 			if match.RuleName != tc.rule.Name || match.Action != tc.rule.Action || match.Before != tc.command {
 				t.Fatalf("match = %#v, want rule/action/before copied from rule and command", match)
 			}
-			if tc.rule.Action == ActionRedact && match.After != tc.command {
-				t.Fatalf("match.After = %q, want current command placeholder until transforms land", match.After)
+			if tc.rule.Action == ActionRedact && match.After == tc.command {
+				t.Fatalf("match.After = %q, want transformed redacted output", match.After)
 			}
 		})
+	}
+}
+
+func TestMatchRulePopulatesRedactedAfterValue(t *testing.T) {
+	match, ok, err := MatchRule("kubectl config set-credentials demo --token abc123", Rule{
+		Name:       "kubectl-token",
+		Type:       RuleRegex,
+		Pattern:    `kubectl.*--token[ =][^ ]+`,
+		Action:     ActionRedact,
+		Confidence: ConfidenceHigh,
+		Reason:     "Redact inline kubectl tokens",
+	})
+	if err != nil {
+		t.Fatalf("MatchRule returned error: %v", err)
+	}
+	if !ok {
+		t.Fatal("MatchRule returned ok=false, want true")
+	}
+	if match.After != redactedPlaceholder {
+		t.Fatalf("match.After = %q, want %q", match.After, redactedPlaceholder)
 	}
 }
 
