@@ -2,29 +2,29 @@
 
 ## Current session
 
-ID: `021-secret-rules`
+ID: `022-trivial-command-rules`
 
 Status: completed
 
 ## Objective
 
-Add the initial curated built-in secret-rule catalog for sanitizer matching.
+Add the initial curated built-in trivial-command and noise-rule catalog for history hygiene.
 
 ## Scope
 
 Implement:
 
-- built-in secret-rule definitions
-- helper to evaluate normalized history entries against that built-in rule set
+- built-in trivial/noise rule definitions
+- helper to evaluate normalized history entries against that built-in hygiene rule set
 - tests for true positives and false-positive guards
 
 ## Out of scope
 
-- user-configurable rule loading
+- user-configurable cleanup rule loading
 - dry-run preview output
 - quarantine persistence
 - cleanup apply behavior
-- trivial/noise cleanup rules
+- dedupe or stale-entry logic
 
 ## Relevant skills
 
@@ -33,14 +33,15 @@ Implement:
 
 ## Acceptance criteria
 
-- repository contains a curated initial secret-rule catalog
-- initial detections cover private key markers, bearer tokens, inline password flags, URL-embedded credentials, cloud access keys, and suspicious high-entropy tokens
+- repository contains a curated initial trivial/noise rule catalog
+- initial detections cover trivial commands like `clear`, `pwd`, `ls`, and `ll`
+- large accidental paste blobs remain classed as hygiene noise
 - broad false positives remain guarded against
 - `go test ./...` passes
 
 ## Current repo state
 
-The repository now includes a curated built-in secret-rule catalog in `internal/sanitize` plus a `MatchSecretRules` helper that applies those rules to normalized history entries.
+The repository now includes a curated built-in trivial-command and noise rule catalog in `internal/sanitize` plus a `MatchTrivialRules` helper that applies those rules to normalized history entries.
 
 ## Decisions already made
 
@@ -53,8 +54,8 @@ The repository now includes a curated built-in secret-rule catalog in `internal/
 
 ## Risks to watch
 
-- The built-in secret catalog is still intentionally narrow and not yet configurable from TOML.
-- Some redact transforms remain coarse because richer semantic transforms are deferred.
+- The built-in trivial catalog is still intentionally narrow and not yet configurable from TOML.
+- Exact-match trivial rules deliberately avoid matching compound commands like `pwd && ls`.
 
 ## Open questions
 
@@ -80,16 +81,16 @@ No questions answered yet.
 
 Summary:
 
-- Added `internal/sanitize/secrets.go` with the first curated built-in secret-rule catalog.
-- Added `MatchSecretRules` to run normalized history entries through that catalog.
-- Added tests for expected secret detections, masked redact output, and false-positive guard cases.
+- Added `internal/sanitize/trivial.go` with the first curated built-in trivial/noise rule catalog.
+- Added `MatchTrivialRules` to run normalized history entries through that catalog.
+- Added tests for expected trivial detections and false-positive guard cases.
 
 Files changed:
 
-- internal/sanitize/secrets.go
-- internal/sanitize/secrets_test.go
+- internal/sanitize/trivial.go
+- internal/sanitize/trivial_test.go
 - SESSION.md
-- SESSIONS/021-secret-rules.md
+- SESSIONS/022-trivial-command-rules.md
 
 Files read:
 
@@ -98,20 +99,17 @@ Files read:
 - SKILLS/sanitizer.md
 - docs/histkit-implementation-plan.md
 - README.md
-- internal/sanitize/model.go
-- internal/sanitize/matcher.go
-- internal/sanitize/redact.go
+- internal/sanitize/secrets.go
+- internal/sanitize/secrets_test.go
 
 Tests added:
 
-- `TestBuiltinSecretRulesValidate`
-- `TestMatchSecretRulesTruePositives`
-- `TestMatchSecretRulesFalsePositiveGuards`
-- `TestSecretRuleRedactionsProduceMaskedOutput`
+- `TestBuiltinTrivialRulesValidate`
+- `TestMatchTrivialRulesTruePositives`
+- `TestMatchTrivialRulesFalsePositiveGuards`
 
 Tests run:
 
-- `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./internal/sanitize`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Known failures:
@@ -120,39 +118,35 @@ Known failures:
 
 Decisions made:
 
-- Keep the initial secret-rule catalog built-in and curated rather than loading from config yet.
-- Use redact for bearer tokens, inline passwords, URL credentials, and cloud key identifiers.
-- Use quarantine for pasted private key material and heuristic high-entropy tokens.
+- Keep the initial trivial/noise catalog built-in and curated rather than loading from config yet.
+- Use delete for narrow exact-match trivial commands.
+- Use quarantine for large accidental paste blobs as hygiene noise.
 
 Commands run:
 
-- `git checkout -b 021-secret-rules`
+- `git checkout -b 022-trivial-command-rules`
 - `sed -n '1,220p' SESSION.md`
 - `sed -n '1,220p' ROADMAP.md`
 - `sed -n '1,220p' SKILLS/sanitizer.md`
-- `rg -n "private key|bearer token|inline password|embedded credentials|cloud access key|high-entropy" docs/histkit-implementation-plan.md README.md SKILLS/sanitizer.md -S`
-- `sed -n '548,566p' docs/histkit-implementation-plan.md`
-- `sed -n '286,296p' README.md`
-- `rg --files internal/sanitize`
-- `sed -n '1,260p' internal/sanitize/model.go`
-- `sed -n '1,260p' internal/sanitize/matcher.go`
-- `sed -n '1,260p' internal/sanitize/redact.go`
-- `gofmt -w internal/sanitize/secrets.go internal/sanitize/secrets_test.go`
-- `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
-- `gofmt -w internal/sanitize/secrets.go`
-- `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./internal/sanitize`
+- `rg -n "trivial|noise|cleanup|dedupe|drop_trivial|commands =|clear|pwd|ls|ll|large paste" docs/histkit-implementation-plan.md README.md -S`
+- `sed -n '300,360p' docs/histkit-implementation-plan.md`
+- `sed -n '40,48p' README.md`
+- `sed -n '396,408p' README.md`
+- `sed -n '1,240p' internal/sanitize/secrets.go`
+- `sed -n '1,260p' internal/sanitize/secrets_test.go`
+- `gofmt -w internal/sanitize/trivial.go internal/sanitize/trivial_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- The first built-in secret catalog can stay code-defined until config wiring lands later.
-- Access-key identifier redaction is still worthwhile even before paired secret-key detection exists.
+- Exact-match-only trivial command handling is the safest first slice for noise cleanup.
+- Treating large paste blobs as hygiene noise is acceptable even though they can also overlap with security concerns.
 
 Risks introduced or reduced:
 
-- Reduced: the sanitizer now has a concrete built-in secret rule set instead of only ad hoc rule examples.
-- Ongoing: rule coverage remains conservative and may need more detectors over time.
+- Reduced: the sanitizer now has a separate built-in hygiene rule set rather than overloading secret detection for cleanup noise.
+- Ongoing: broader hygiene logic like dedupe or stale-entry handling still needs later slices.
 
 Next recommended session:
 
-- `022-trivial-command-rules`
+- `023-dry-run-preview`
