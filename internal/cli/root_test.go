@@ -36,7 +36,8 @@ func TestExecuteStatsPlaceholder(t *testing.T) {
 }
 
 func TestExecuteDoctorPlaceholder(t *testing.T) {
-	assertCommandOutput(t, []string{"doctor"}, "doctor is not implemented yet")
+	t.Setenv("HOME", t.TempDir())
+	assertCommandOutput(t, []string{"doctor"}, "doctor overall status:")
 }
 
 func TestExecuteUnknownCommand(t *testing.T) {
