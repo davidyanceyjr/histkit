@@ -2,50 +2,43 @@
 
 ## Current session
 
-ID: `015-pick-candidates`
+ID: `016-session-git-workflow`
 
 Status: completed
 
 ## Objective
 
-Implement the initial merged picker candidate layer for history and snippets.
+Add an explicit git/GitHub workflow requirement to every session.
 
 ## Scope
 
 Implement:
 
-- `internal/picker/candidates.go`
-- recent-history query helper for picker use
-- merged history/snippet candidate formatting
-- deterministic picker candidate tests
+- workflow updates in `AGENT.md`
+- session-start/session-end prompt updates in `SESSION_PROMPT.md`
+- operating-model documentation updates
+- session record and note updates
 
 ## Out of scope
 
-- `fzf` invocation
-- CLI `pick` command surface
-- snippet CLI commands
-- backup tables
-- destructive cleanup
+- automation of GitHub publishing
+- CI enforcement of session workflow
+- changes to product runtime behavior
 
 ## Relevant skills
 
 - `SKILLS/testing.md`
-- `SKILLS/snippets.md`
-- `SKILLS/fzf-picker.md`
 
 ## Acceptance criteria
 
-- `go test ./...` passes
-- recent history entries can be queried for picker use
-- history and snippet candidates merge into one in-memory stream
-- candidate formatting uses `[history]` and `[snippet]` labels
-- snippets remain separate from shell history/index storage
+- repository workflow docs require creating the branch at session start
+- repository workflow docs require staging, committing, pushing, and PR creation at session end
+- repository workflow docs require human approval before merge and cleanup
+- `go test ./...` still passes
 
 ## Current repo state
 
-The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, source detection, SQLite schema initialization, history-entry writer, initial scan pipeline, initial stats command, initial doctor command, snippet model, snippet store, builtin snippet catalog, and picker candidate layer now exist.
-
-There is still no `fzf` invocation or shell-wrapper integration yet.
+The repository now documents a full session-close workflow that includes branch creation, commit/push, PR creation, human approval, merge, and cleanup.
 
 ## Decisions already made
 
@@ -58,9 +51,8 @@ There is still no `fzf` invocation or shell-wrapper integration yet.
 
 ## Risks to watch
 
-- Keep migrations explicit from the first schema version.
-- Keep command behavior read-only outside explicit cleanup/apply milestones.
-- Preserve separation between raw history, indexed history, and snippets.
+- Keep workflow docs consistent across all session entry points.
+- Do not imply automatic merge authority; preserve explicit human approval.
 
 ## Open questions
 
@@ -86,41 +78,29 @@ No questions answered yet.
 
 Summary:
 
-- Added a recent-history query helper for picker use in `internal/index`.
-- Added an `internal/picker` package that merges recent history and snippets into labeled candidates.
-- Added deterministic tests for candidate merging, display formatting, selection-line parsing, and recent-history ordering.
+- Updated `AGENT.md` so sessions now require branch creation at start and add/commit/push/PR/human approval/merge/cleanup at end.
+- Updated `SESSION_PROMPT.md` to include the same GitHub workflow expectations in the startup prompt.
+- Updated `docs/IMPLEMENTATION_OPERATING_MODEL.md` so the recommended workflow now includes branch creation, PR creation, and human approval before merge.
 
 Files changed:
 
+- AGENT.md
+- SESSION_PROMPT.md
+- docs/IMPLEMENTATION_OPERATING_MODEL.md
 - SESSION.md
-- internal/index/picker.go
-- internal/index/picker_test.go
-- internal/picker/candidates.go
-- internal/picker/candidates_test.go
-- SESSIONS/015-pick-candidates.md
+- SESSIONS/016-session-git-workflow.md
 
 Files read:
 
 - AGENT.md
-- ROADMAP.md
+- SESSION_PROMPT.md
+- docs/IMPLEMENTATION_OPERATING_MODEL.md
 - SESSION.md
-- SKILLS/snippets.md
-- SKILLS/fzf-picker.md
-- README.md
-- docs/histkit-implementation-plan.md
-- internal/index/stats.go
-- internal/index/writer.go
-- internal/snippets/model.go
-- internal/snippets/store.go
-- internal/snippets/store_test.go
+- ROADMAP.md
 
 Tests added:
 
-- TestQueryRecentHistoryEntriesOrdersNewestFirst
-- TestQueryRecentHistoryEntriesRequiresDBAndLimit
-- TestLoadCandidatesMergesHistoryAndSnippets
-- TestLoadCandidatesIncludesMissingBuiltinsWithoutOverwritingUserSnippets
-- TestParseSelectedLine
+- None.
 
 Tests run:
 
@@ -132,33 +112,27 @@ Known failures:
 
 Decisions made:
 
-- Carry forward prior decisions from session `014-builtin-snippets`.
-- Format picker candidates with exact `[history]` and `[snippet]` labels followed by two spaces and the command text.
-- Keep the candidate merger package-level only for this slice; `fzf` execution and CLI wiring remain deferred.
-- When builtin snippets are included during candidate loading, user-store snippets win on ID collisions.
+- Every session must start by creating or switching to the session branch before implementation work begins.
+- Every session must end by staging intended files, committing with a human-readable message, pushing, and opening a pull request.
+- Merge and cleanup require explicit human approval and mark the official end of a session.
 
 Commands run:
 
-- `git status --short --branch`
-- `git checkout -b 015-pick-candidates`
+- `git checkout -b 016-session-git-workflow`
+- `sed -n '1,260p' AGENT.md`
+- `sed -n '1,220p' SESSION_PROMPT.md`
+- `sed -n '1,220p' docs/IMPLEMENTATION_OPERATING_MODEL.md`
 - `sed -n '1,220p' SESSION.md`
-- `sed -n '1,220p' ROADMAP.md`
-- `sed -n '1,220p' SKILLS/fzf-picker.md`
-- `sed -n '630,670p' docs/histkit-implementation-plan.md`
-- `sed -n '1,220p' internal/index/stats.go`
-- `sed -n '1,260p' internal/index/writer.go`
-- `rg --files internal | rg 'picker|pick'`
-- `gofmt -w internal/index/picker.go internal/index/picker_test.go internal/picker/candidates.go internal/picker/candidates_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- A package-level candidate merger without `fzf` execution is sufficient for this slice before the actual picker command exists.
+- Documentation changes are sufficient for this workflow requirement without additional enforcement code.
 
 Risks introduced or reduced:
 
-- Reduced: history and snippets can now be merged at presentation time without collapsing their underlying storage domains.
-- Ongoing: the actual picker command, `fzf` process handling, and shell wrapper integration are still deferred.
+- Reduced: session publishing and closure expectations are now explicit and consistent across the repo’s workflow documents.
+- Ongoing: the workflow is still convention-driven rather than automatically enforced.
 
 Next recommended session:
 

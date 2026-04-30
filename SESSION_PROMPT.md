@@ -17,12 +17,20 @@ Then perform the current session objective.
 Rules:
 
 - Stay inside SESSION.md scope.
+- Create or switch to the session git branch before implementation work begins.
 - Do not implement deferred features.
 - Do not mutate shell history files unless this session is explicitly in the safe-apply milestone.
 - Add or update tests for the slice.
 - Run relevant tests.
 - Update SESSION.md with results.
 - Create a completed note under SESSIONS/<session-id>.md.
+- Stage only the intended session files.
+- Commit with a human-readable message.
+- Push the session branch.
+- Open a pull request.
+- Get human approval before merge and cleanup.
+- After approval, merge the pull request and clean up the branch state.
+- Consider the session closed only after merge and cleanup complete.
 
 Final response must include:
 
