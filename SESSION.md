@@ -2,31 +2,30 @@
 
 ## Current session
 
-ID: `018-rule-model`
+ID: `019-rule-matching`
 
 Status: completed
 
 ## Objective
 
-Add the initial sanitization rule and rule-match model types with validation.
+Add the initial rule-matching engine for sanitizer rules over normalized history entries.
 
 ## Scope
 
 Implement:
 
-- `internal/sanitize` package model types
-- supported rule/action/confidence enums
-- rule validation
-- rule-match validation
-- collection validation tests
+- rule-by-rule matching over `history.HistoryEntry`
+- support for exact, contains, regex, keyword-group, and heuristic rule classes
+- initial heuristic detector registry
+- matcher-focused tests
 
 ## Out of scope
 
-- rule matching execution
 - redaction transforms
-- CLI config loading for cleanup rules
-- dry-run preview output
+- config loading for cleanup rules
+- dry-run preview rendering
 - quarantine persistence
+- cleanup apply behavior
 
 ## Relevant skills
 
@@ -35,15 +34,15 @@ Implement:
 
 ## Acceptance criteria
 
-- repository contains rule-model types for the sanitizer engine
-- supported rule classes and actions match the implementation plan
-- invalid rule definitions are rejected
-- invalid rule-match records are rejected
+- repository contains an executable matcher for sanitizer rules
+- matching operates over normalized history entry commands
+- supported rule classes produce rule-match records with action and confidence
+- false-positive guard coverage exists for broad non-matching cases
 - `go test ./...` passes
 
 ## Current repo state
 
-The repository now has an `internal/sanitize` package with validated rule and rule-match model types covering exact, contains, regex, keyword-group, and heuristic rule classes.
+The repository now has an executable sanitizer matcher in `internal/sanitize` that evaluates rules against normalized history commands and returns validated `RuleMatch` records for matching rules.
 
 ## Decisions already made
 
@@ -56,8 +55,8 @@ The repository now has an `internal/sanitize` package with validated rule and ru
 
 ## Risks to watch
 
-- Rule definitions are not wired into config loading yet.
-- Matching, transform, and dry-run behavior still depend on later slices.
+- Redact actions currently preserve the original command in `After` until transform support lands in the next slice.
+- Heuristic coverage is intentionally narrow and not yet wired to user-facing rule catalogs.
 
 ## Open questions
 
@@ -83,16 +82,16 @@ No questions answered yet.
 
 Summary:
 
-- Added `internal/sanitize/model.go` with rule-type, action, confidence, rule, and rule-match definitions.
-- Added validation for supported rule classes, regex compilation, heuristic detector naming, and redact-match output requirements.
-- Added tests covering valid models, invalid inputs, duplicate rule names, and valid/invalid rule-match records.
+- Added `internal/sanitize/matcher.go` with `MatchRule` and `MatchEntry` over normalized command strings.
+- Implemented exact, contains, regex, keyword-group, and heuristic rule matching, plus a small heuristic detector registry.
+- Added tests for true positives, broad false-positive guards, invalid detector handling, and multi-rule matching.
 
 Files changed:
 
-- internal/sanitize/model.go
-- internal/sanitize/model_test.go
+- internal/sanitize/matcher.go
+- internal/sanitize/matcher_test.go
 - SESSION.md
-- SESSIONS/018-rule-model.md
+- SESSIONS/019-rule-matching.md
 
 Files read:
 
@@ -101,17 +100,17 @@ Files read:
 - SKILLS/sanitizer.md
 - docs/histkit-implementation-plan.md
 - README.md
-- internal/snippets/model.go
-- internal/snippets/model_test.go
+- internal/history/model.go
+- internal/sanitize/model.go
+- internal/sanitize/model_test.go
 
 Tests added:
 
-- `TestRuleValidateAcceptsSupportedRuleTypes`
-- `TestRuleValidateRejectsInvalidRules`
-- `TestValidateRulesRejectsDuplicateNames`
-- `TestValidateRulesAcceptsDistinctRules`
-- `TestRuleMatchValidate`
-- `TestRuleMatchValidateRejectsInvalidMatches`
+- `TestMatchRule`
+- `TestMatchRuleRejectsUnknownHeuristicDetector`
+- `TestMatchEntryReturnsAllMatchingRules`
+- `TestMatchEntryRejectsInvalidEntry`
+- `TestLargePasteBlobHeuristic`
 
 Tests run:
 
@@ -123,37 +122,36 @@ Known failures:
 
 Decisions made:
 
-- Keep the first sanitizer slice limited to model and validation behavior.
-- Represent rule confidence as `low`, `medium`, or `high` to match the documented configuration shape.
-- Require redact matches to carry both `Before` and `After` values.
+- Define keyword-group rules as matching only when all listed keywords are present.
+- Match over `history.HistoryEntry.Command` rather than `RawLine`.
+- Keep redact matches structurally valid by carrying the original command in `After` until transform logic lands.
 
 Commands run:
 
-- `git checkout -b 018-rule-model`
+- `git checkout -b 019-rule-matching`
 - `sed -n '1,220p' SESSION.md`
 - `sed -n '1,220p' ROADMAP.md`
 - `sed -n '1,220p' SKILLS/sanitizer.md`
-- `rg -n "rule model|rules|sanitize|quarantine|redact|confidence|action|heuristic" docs/histkit-implementation-plan.md README.md internal -S`
-- `sed -n '430,620p' docs/histkit-implementation-plan.md`
-- `rg --files internal | rg 'sanitize|rule|clean'`
-- `sed -n '268,390p' docs/histkit-implementation-plan.md`
-- `sed -n '260,320p' README.md`
-- `sed -n '396,432p' README.md`
-- `sed -n '1,240p' internal/snippets/model.go`
-- `sed -n '1,260p' internal/snippets/model_test.go`
-- `gofmt -w internal/sanitize/model.go internal/sanitize/model_test.go`
+- `sed -n '528,586p' docs/histkit-implementation-plan.md`
+- `sed -n '1,240p' internal/history/model.go`
+- `sed -n '1,260p' internal/sanitize/model.go`
+- `sed -n '1,320p' internal/sanitize/model_test.go`
+- `rg -n "Match|matcher|heuristic|keyword group|contains|regex" internal/sanitize README.md docs/histkit-implementation-plan.md -S`
+- `rg -n "keyword group|heuristic detector|all keywords|keywords" README.md docs/histkit-implementation-plan.md -S`
+- `rg -n "high[- ]entropy|large paste|private key|bearer token|inline password|URL" docs/histkit-implementation-plan.md README.md SKILLS/sanitizer.md -S`
+- `gofmt -w internal/sanitize/matcher.go internal/sanitize/matcher_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- A `Detector` string is sufficient for heuristic rule identity in the model before execution logic exists.
-- Regex compilation belongs in model validation so invalid rule definitions fail early.
+- A small built-in heuristic registry is sufficient for this slice before concrete rule catalogs are introduced.
+- Matching exact rules should preserve exact command text rather than trim whitespace automatically.
 
 Risks introduced or reduced:
 
-- Reduced: the sanitizer engine now has a concrete validated model surface for later matching and preview slices.
-- Ongoing: there is still no end-to-end cleanup flow until matching and preview work land.
+- Reduced: later transform and dry-run slices now have an executable matcher contract to build on.
+- Ongoing: actual redaction output is still placeholder-only until the transform slice lands.
 
 Next recommended session:
 
-- `019-rule-matching`
+- `020-redaction-transforms`
