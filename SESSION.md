@@ -2,29 +2,29 @@
 
 ## Current session
 
-ID: `016-fzf-picker`
+ID: `017-shell-wrappers`
 
 Status: completed
 
 ## Objective
 
-Implement the first external `fzf` picker flow and wire it into `histkit pick`.
+Add lightweight Bash and Zsh wrapper scripts for interactive `histkit pick` usage.
 
 ## Scope
 
 Implement:
 
-- external `fzf` execution for merged picker candidates
-- `histkit pick` CLI wiring
-- selected-command emission to stdout
-- picker-focused tests for success, abort, and missing-`fzf` behavior
+- Bash wrapper script for loading picker output into the readline buffer
+- Zsh wrapper script for loading picker output into the shell editing buffer
+- README usage examples for sourcing and binding the wrapper scripts
+- wrapper-focused tests
 
 ## Out of scope
 
-- shell wrapper functions for Bash or Zsh
-- picker preview panes
-- placeholder expansion for snippets
-- config-schema expansion for `[fzf]`
+- changes to `histkit pick` core command behavior
+- preview panes or placeholder expansion
+- automatic shell-profile installation
+- sanitizer or cleanup features
 
 ## Relevant skills
 
@@ -33,15 +33,15 @@ Implement:
 
 ## Acceptance criteria
 
-- `histkit pick` invokes external `fzf` rather than an internal fuzzy finder
-- indexed history and snippets are merged only at picker presentation time
-- the selected command is written to stdout
-- missing `fzf` is reported as an error
+- repository contains sourceable Bash and Zsh wrapper scripts
+- wrappers call `histkit pick`, capture stdout, and place the result into the active shell buffer
+- wrappers are documented in `README.md`
+- automated validation covers wrapper behavior where feasible
 - `go test ./...` passes
 
 ## Current repo state
 
-`histkit pick` now loads recent indexed history plus configured snippets, invokes external `fzf`, and prints the selected command to stdout. Picker aborts return no selection without mutating history or snippets.
+The repository now includes Bash and Zsh wrapper scripts under `contrib/` so interactive shells can bind `Ctrl-R` to `histkit pick` and replace the current editing buffer with the selected command.
 
 ## Decisions already made
 
@@ -54,8 +54,8 @@ Implement:
 
 ## Risks to watch
 
-- `pick` still depends on an existing populated history index; it does not trigger `scan`.
-- The first picker slice has no preview pane, shell-buffer integration, or dedicated `fzf` config flags yet.
+- Zsh is not installed in this environment, so runtime validation here covers Bash directly and verifies the Zsh wrapper structurally.
+- Wrapper installation remains manual; users must source the script and bind the helper in their shell config.
 
 ## Open questions
 
@@ -81,53 +81,38 @@ No questions answered yet.
 
 Summary:
 
-- Added `internal/picker/fzf.go` to run external `fzf`, treat abort/no-selection as non-errors, and parse the chosen candidate line back into a command.
-- Added `internal/cli/pick.go` and root-command wiring so `histkit pick` opens the picker over indexed history and snippets, then prints the selected command to stdout.
-- Extended picker tests and CLI tests to cover successful selection, missing `fzf`, abort behavior, and snippets-disabled candidate loading.
+- Added `contrib/histkit.bash` and `contrib/histkit.zsh` as lightweight sourceable wrappers around `histkit pick`.
+- Added `contrib/wrappers_test.go` to exercise the Bash wrapper directly and verify key Zsh wrapper behavior from file contents.
+- Updated `README.md` with shell-wrapper setup examples for Bash and Zsh.
 
 Files changed:
 
-- internal/picker/fzf.go
-- internal/picker/fzf_test.go
-- internal/picker/candidates.go
-- internal/picker/candidates_test.go
-- internal/cli/pick.go
-- internal/cli/pick_test.go
-- internal/cli/root.go
-- internal/cli/root_test.go
+- README.md
+- contrib/histkit.bash
+- contrib/histkit.zsh
+- contrib/wrappers_test.go
 - SESSION.md
-- SESSIONS/016-fzf-picker.md
+- SESSIONS/017-shell-wrappers.md
 
 Files read:
 
 - SESSION.md
 - ROADMAP.md
-- AGENT.md
 - SKILLS/fzf-picker.md
-- internal/picker/candidates.go
-- internal/picker/candidates_test.go
-- internal/index/picker.go
-- internal/snippets/store.go
-- internal/config/config.go
-- internal/cli/root.go
-- internal/cli/root_test.go
-- internal/cli/doctor_test.go
 - docs/histkit-implementation-plan.md
 - README.md
-- cmd/histkit/main.go
-- internal/snippets/model.go
+- configs/config.example.toml
 
 Tests added:
 
-- `TestSelectReturnsErrorWhenFZFNotFound`
-- `TestSelectReturnsChosenCandidate`
-- `TestSelectReturnsNoSelectionForAbort`
-- `TestLoadCandidatesSkipsSnippetsWhenDisabled`
-- `TestExecutePickPrintsSelectedCommand`
-- `TestExecutePickFailsWhenFZFIsMissing`
+- `TestBashWrapperLoadsSelectionIntoReadlineBuffer`
+- `TestBashWrapperLeavesBufferUntouchedOnEmptySelection`
+- `TestZshWrapperScriptContainsBindingHelper`
 
 Tests run:
 
+- `bash -n contrib/histkit.bash`
+- `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./contrib`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Known failures:
@@ -136,38 +121,41 @@ Known failures:
 
 Decisions made:
 
-- Keep the `fzf` invocation slice minimal: no preview pane or shell-specific integration yet.
-- Treat `fzf` exit codes for no match or abort as no-selection rather than command failure.
-- Allow picker candidate loading to skip snippets entirely when snippet support is disabled.
+- Keep shell integration outside the Go binary in sourceable wrapper scripts under `contrib/`.
+- Provide explicit binding helper functions rather than auto-modifying shell key bindings when sourced.
+- Replace the current editing buffer with the selected command rather than attempting partial insertion.
 
 Commands run:
 
-- `git checkout -b 016-fzf-picker`
-- `sed -n '1,240p' internal/picker/candidates_test.go`
-- `sed -n '1,240p' internal/index/picker.go`
-- `sed -n '1,240p' internal/snippets/store.go`
-- `sed -n '1,260p' internal/cli/root_test.go`
-- `sed -n '1,260p' internal/cli/doctor_test.go`
-- `sed -n '1,240p' internal/config/config_test.go`
-- `rg -n "pick|fzf" internal/cli README.md configs/config.example.toml docs/histkit-implementation-plan.md -S`
-- `sed -n '1,220p' cmd/histkit/main.go`
-- `sed -n '385,445p' README.md`
-- `sed -n '1,220p' internal/snippets/builtin.go`
-- `gofmt -w internal/picker/fzf.go internal/picker/fzf_test.go internal/picker/candidates.go internal/picker/candidates_test.go internal/cli/pick.go internal/cli/pick_test.go internal/cli/root.go internal/cli/root_test.go`
-- `sed -n '1,220p' internal/snippets/model.go`
-- `gofmt -w internal/picker/fzf_test.go internal/picker/candidates_test.go internal/cli/pick_test.go`
+- `git checkout -b 017-shell-wrappers`
+- `sed -n '1,220p' SESSION.md`
+- `sed -n '1,220p' ROADMAP.md`
+- `sed -n '1,220p' SKILLS/fzf-picker.md`
+- `sed -n '665,710p' docs/histkit-implementation-plan.md`
+- `sed -n '330,370p' README.md`
+- `sed -n '460,478p' README.md`
+- `rg --files | rg '^contrib/|shell|bash|zsh'`
+- `sed -n '1,220p' configs/config.example.toml`
+- `bash --version | head -n 1`
+- `zsh --version`
+- `rg -n "contrib/|histkit.bash|histkit.zsh|Shell integration|wrapper" README.md docs -S`
+- `sed -n '850,885p' docs/histkit-implementation-plan.md`
+- `sed -n '990,1018p' docs/histkit-implementation-plan.md`
+- `gofmt -w contrib/wrappers_test.go`
+- `bash -n contrib/histkit.bash`
+- `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./contrib`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- The first `pick` slice can rely on an already-populated local index instead of triggering a scan automatically.
-- `fzf` abort or no-match should result in no stdout output and no command error from `histkit pick`.
+- A manual source-and-bind workflow is sufficient for the first shell-wrapper slice.
+- Structural verification of the Zsh wrapper is acceptable in this environment because `zsh` is not installed locally.
 
 Risks introduced or reduced:
 
-- Reduced: the codebase now has a working end-to-end picker path that preserves history/snippet separation and depends on external `fzf` as planned.
-- Ongoing: shell-buffer insertion still depends on later wrapper work outside the binary.
+- Reduced: interactive shell integration now exists without coupling the Go binary to shell editor internals.
+- Ongoing: wrapper ergonomics may need polish later, especially once preview panes or richer shell integration exist.
 
 Next recommended session:
 
-- `017-shell-wrappers`
+- `018-rule-model`

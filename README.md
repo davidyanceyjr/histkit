@@ -346,6 +346,22 @@ A wrapper function can:
 
 The standalone binary writes the selected command to standard output and does not require direct manipulation of shell line-editor internals.
 
+Example Bash setup:
+
+```sh
+source /path/to/histkit/contrib/histkit.bash
+histkit_bind_bash_pick
+```
+
+Example Zsh setup:
+
+```sh
+source /path/to/histkit/contrib/histkit.zsh
+histkit_bind_zsh_pick
+```
+
+Both wrappers bind `Ctrl-R` to invoke `histkit pick`, capture the selected command, and replace the current shell editing buffer with that command.
+
 ## Configuration
 
 Default config path:
