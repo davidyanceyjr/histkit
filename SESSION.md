@@ -2,30 +2,29 @@
 
 ## Current session
 
-ID: `020-redaction-transforms`
+ID: `021-secret-rules`
 
 Status: completed
 
 ## Objective
 
-Add the initial redaction transform layer for redact-action sanitizer matches.
+Add the initial curated built-in secret-rule catalog for sanitizer matching.
 
 ## Scope
 
 Implement:
 
-- dedicated redaction helper for matched commands
-- transform support for exact, contains, regex, keyword-group, and heuristic redact rules
-- matcher integration so redact matches carry transformed `After` values
-- redaction-focused tests
+- built-in secret-rule definitions
+- helper to evaluate normalized history entries against that built-in rule set
+- tests for true positives and false-positive guards
 
 ## Out of scope
 
-- secret-rule catalogs
-- config loading for cleanup rules
-- dry-run preview rendering
+- user-configurable rule loading
+- dry-run preview output
 - quarantine persistence
 - cleanup apply behavior
+- trivial/noise cleanup rules
 
 ## Relevant skills
 
@@ -34,14 +33,14 @@ Implement:
 
 ## Acceptance criteria
 
-- redact matches carry transformed output instead of echoing the original command
-- redaction logic avoids re-exposing matched secret-like values in transformed output
-- matcher integration remains non-destructive
+- repository contains a curated initial secret-rule catalog
+- initial detections cover private key markers, bearer tokens, inline password flags, URL-embedded credentials, cloud access keys, and suspicious high-entropy tokens
+- broad false positives remain guarded against
 - `go test ./...` passes
 
 ## Current repo state
 
-The repository now has a dedicated redaction transform layer in `internal/sanitize` and redact-action rule matches carry masked `After` values instead of placeholder copies of the original command.
+The repository now includes a curated built-in secret-rule catalog in `internal/sanitize` plus a `MatchSecretRules` helper that applies those rules to normalized history entries.
 
 ## Decisions already made
 
@@ -54,8 +53,8 @@ The repository now has a dedicated redaction transform layer in `internal/saniti
 
 ## Risks to watch
 
-- Keyword-group redaction is still structural rather than semantic; it masks listed keywords rather than reconstructing richer URL-aware output.
-- Large-paste heuristic redaction currently collapses the full command to a single placeholder.
+- The built-in secret catalog is still intentionally narrow and not yet configurable from TOML.
+- Some redact transforms remain coarse because richer semantic transforms are deferred.
 
 ## Open questions
 
@@ -81,18 +80,16 @@ No questions answered yet.
 
 Summary:
 
-- Added `internal/sanitize/redact.go` with the first redaction transform helper.
-- Wired `MatchRule` so redact matches now populate `RuleMatch.After` with masked output.
-- Added tests covering exact, contains, regex, keyword-group, heuristic, and non-match redaction behavior.
+- Added `internal/sanitize/secrets.go` with the first curated built-in secret-rule catalog.
+- Added `MatchSecretRules` to run normalized history entries through that catalog.
+- Added tests for expected secret detections, masked redact output, and false-positive guard cases.
 
 Files changed:
 
-- internal/sanitize/redact.go
-- internal/sanitize/redact_test.go
-- internal/sanitize/matcher.go
-- internal/sanitize/matcher_test.go
+- internal/sanitize/secrets.go
+- internal/sanitize/secrets_test.go
 - SESSION.md
-- SESSIONS/020-redaction-transforms.md
+- SESSIONS/021-secret-rules.md
 
 Files read:
 
@@ -101,15 +98,16 @@ Files read:
 - SKILLS/sanitizer.md
 - docs/histkit-implementation-plan.md
 - README.md
+- internal/sanitize/model.go
 - internal/sanitize/matcher.go
-- internal/sanitize/matcher_test.go
+- internal/sanitize/redact.go
 
 Tests added:
 
-- `TestRedactCommand`
-- `TestRedactCommandRejectsNonMatchingInput`
-- `TestRedactCommandRejectsUnknownHeuristicDetector`
-- `TestMatchRulePopulatesRedactedAfterValue`
+- `TestBuiltinSecretRulesValidate`
+- `TestMatchSecretRulesTruePositives`
+- `TestMatchSecretRulesFalsePositiveGuards`
+- `TestSecretRuleRedactionsProduceMaskedOutput`
 
 Tests run:
 
@@ -122,37 +120,39 @@ Known failures:
 
 Decisions made:
 
-- Keep the first redaction slice focused on transform helpers rather than adding rule catalogs.
-- Preserve `KEY=` prefixes when heuristic high-entropy redaction masks `KEY=value` tokens.
-- Prefer fully masked placeholder output over leaking large pasted content.
+- Keep the initial secret-rule catalog built-in and curated rather than loading from config yet.
+- Use redact for bearer tokens, inline passwords, URL credentials, and cloud key identifiers.
+- Use quarantine for pasted private key material and heuristic high-entropy tokens.
 
 Commands run:
 
-- `git checkout -b 020-redaction-transforms`
+- `git checkout -b 021-secret-rules`
 - `sed -n '1,220p' SESSION.md`
 - `sed -n '1,220p' ROADMAP.md`
 - `sed -n '1,220p' SKILLS/sanitizer.md`
-- `rg -n "redaction|redact|transformed value|After|mask|REDACTED" docs/histkit-implementation-plan.md README.md internal/sanitize -S`
-- `sed -n '540,586p' docs/histkit-implementation-plan.md`
-- `sed -n '276,306p' README.md`
+- `rg -n "private key|bearer token|inline password|embedded credentials|cloud access key|high-entropy" docs/histkit-implementation-plan.md README.md SKILLS/sanitizer.md -S`
+- `sed -n '548,566p' docs/histkit-implementation-plan.md`
+- `sed -n '286,296p' README.md`
+- `rg --files internal/sanitize`
+- `sed -n '1,260p' internal/sanitize/model.go`
 - `sed -n '1,260p' internal/sanitize/matcher.go`
-- `sed -n '1,320p' internal/sanitize/matcher_test.go`
-- `gofmt -w internal/sanitize/redact.go internal/sanitize/redact_test.go internal/sanitize/matcher.go internal/sanitize/matcher_test.go`
+- `sed -n '1,260p' internal/sanitize/redact.go`
+- `gofmt -w internal/sanitize/secrets.go internal/sanitize/secrets_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
-- `gofmt -w internal/sanitize/redact.go`
+- `gofmt -w internal/sanitize/secrets.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./internal/sanitize`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- Structural masking is sufficient for the first keyword-group redaction slice.
-- Collapsing a large pasted blob to a single placeholder is acceptable until richer preview UX exists.
+- The first built-in secret catalog can stay code-defined until config wiring lands later.
+- Access-key identifier redaction is still worthwhile even before paired secret-key detection exists.
 
 Risks introduced or reduced:
 
-- Reduced: redact matches no longer echo original sensitive-looking command content into transformed output.
-- Ongoing: transform fidelity for some rule classes can be improved later without changing the core matcher contract.
+- Reduced: the sanitizer now has a concrete built-in secret rule set instead of only ad hoc rule examples.
+- Ongoing: rule coverage remains conservative and may need more detectors over time.
 
 Next recommended session:
 
-- `021-secret-rules`
+- `022-trivial-command-rules`
