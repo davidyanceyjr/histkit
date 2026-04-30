@@ -2,27 +2,25 @@
 
 ## Current session
 
-ID: `025-backup-model`
+ID: `026-backup-creation`
 
 Status: completed
 
 ## Objective
 
-Add the initial backup record model and metadata helpers.
+Add concrete on-disk backup creation on top of the backup record model.
 
 ## Scope
 
 Implement:
 
-- package-level backup record model
-- backup record validation
-- metadata-only backup record creation helpers
-- backup-model-focused tests
+- package-level backup file creation helpers
+- source-file checksum computation
+- backup directory creation and file copy behavior
+- backup-creation-focused tests
 
 ## Out of scope
 
-- backup file creation
-- checksum computation
 - restore behavior
 - audit logging
 - cleanup apply behavior
@@ -34,14 +32,14 @@ Implement:
 
 ## Acceptance criteria
 
-- repository contains a backup metadata model matching the documented fields
-- backup records include source file, backup path, created time, and checksum
-- deterministic backup identifiers exist for later creation/restore work
+- repository can create a backup file from a source history file
+- created backup records include a computed checksum and on-disk backup path
+- backup creation verifies copied bytes by checksum before returning
 - `go test ./...` passes
 
 ## Current repo state
 
-The repository now has a package-level backup record model in `internal/backup` plus metadata-only helpers to derive backup IDs and backup paths for later backup creation work.
+The repository has a validated backup record model in `internal/backup`, but it still needs a concrete creation path that copies source files into the derived backup location and computes checksums internally.
 
 ## Decisions already made
 
@@ -54,8 +52,8 @@ The repository now has a package-level backup record model in `internal/backup` 
 
 ## Risks to watch
 
-- Backup records are still metadata-only and do not create or verify files yet.
-- Checksum values are required by the model but still supplied externally until the creation slice lands.
+- Backup creation touches the filesystem, so tests must stay isolated to temporary files and directories.
+- Later restore slices will depend on the backup path and checksum contract established here.
 
 ## Open questions
 
@@ -81,16 +79,16 @@ No questions answered yet.
 
 Summary:
 
-- Added `internal/backup/model.go` with a backup record model and validation.
-- Added deterministic backup ID generation and metadata-only record creation helpers.
-- Added tests for validation, ID generation, derived backup paths, and invalid input handling.
+- Added `internal/backup/create.go` with package-level backup creation and checksum helpers.
+- Added checksum-verified file-copy behavior that creates the derived backup directory and refuses to overwrite an existing backup artifact.
+- Added focused temp-file tests for successful creation, directory creation, checksum generation, and invalid-input handling.
 
 Files changed:
 
-- internal/backup/model.go
-- internal/backup/model_test.go
+- internal/backup/create.go
+- internal/backup/create_test.go
 - SESSION.md
-- SESSIONS/025-backup-model.md
+- SESSIONS/026-backup-creation.md
 
 Files read:
 
@@ -98,17 +96,18 @@ Files read:
 - ROADMAP.md
 - SKILLS/backup-restore.md
 - docs/histkit-implementation-plan.md
-- README.md
-- internal/sanitize/quarantine.go
-- internal/sanitize/quarantine_test.go
+- internal/backup/model.go
+- internal/backup/model_test.go
+- internal/index/writer.go
 
 Tests added:
 
-- `TestRecordValidate`
-- `TestRecordValidateRequiresFields`
-- `TestBackupID`
-- `TestBuildRecord`
-- `TestBuildRecordRejectsInvalidInputs`
+- `TestCreate`
+- `TestCreateCreatesBackupDirectory`
+- `TestCreateRejectsInvalidInputs`
+- `TestCreateRejectsExistingBackupPath`
+- `TestChecksumFile`
+- `TestChecksumFileRejectsEmptyPath`
 
 Tests run:
 
@@ -116,40 +115,40 @@ Tests run:
 
 Known failures:
 
-- None.
+- None currently recorded.
 
 Decisions made:
 
-- Keep the first backup slice limited to metadata and validation only.
-- Derive backup paths as `<backup-dir>/<backup-id>/<basename(source-file)>`.
-- Use deterministic timestamp-plus-sequence backup IDs for now.
+- Keep this slice limited to backup file creation and checksum verification.
+- Reuse the existing backup record model and derived backup-path format.
+- Prefix file checksums as `sha256:` to match the model contract.
 
 Commands run:
 
-- `git checkout -b 025-backup-model`
+- `git checkout -b 026-backup-creation`
 - `sed -n '1,220p' SESSION.md`
 - `sed -n '1,220p' ROADMAP.md`
 - `sed -n '1,220p' SKILLS/backup-restore.md`
-- `rg -n "backup|restore|checksum|backup_path|source_file|created_at|backup ID|audit" docs/histkit-implementation-plan.md README.md -S`
-- `sed -n '456,470p' docs/histkit-implementation-plan.md`
-- `sed -n '687,705p' docs/histkit-implementation-plan.md`
-- `sed -n '155,163p' README.md`
-- `rg --files internal | rg 'sanitize|backup|audit|restore'`
-- `sed -n '1,260p' internal/sanitize/quarantine.go`
-- `sed -n '1,260p' internal/sanitize/quarantine_test.go`
-- `gofmt -w internal/backup/model.go internal/backup/model_test.go`
+- `sed -n '1,220p' internal/backup/model.go`
+- `sed -n '1,220p' internal/backup/model_test.go`
+- `rg -n "backup" ROADMAP.md SESSION.md docs internal -g '!**/*.sum'`
+- `sed -n '680,740p' docs/histkit-implementation-plan.md`
+- `sed -n '840,875p' docs/histkit-implementation-plan.md`
+- `rg -n "sha256|checksum" internal docs README.md`
+- `sed -n '1,180p' internal/index/writer.go`
+- `gofmt -w internal/backup/create.go internal/backup/create_test.go internal/backup/model.go internal/backup/model_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- Deterministic timestamp-plus-sequence identifiers are sufficient for the first backup slice.
-- Metadata-only path derivation is acceptable before actual file-copy work exists.
+- Backup creation should fail rather than overwrite an existing derived backup path.
+- Computing the checksum from the source file before copy and revalidating the copied file is sufficient for this slice.
 
 Risks introduced or reduced:
 
-- Reduced: later backup creation and restore slices now have a concrete validated metadata contract to build on.
-- Ongoing: real backup durability and checksum generation still depend on later slices.
+- Reduced: later apply and restore work will have a concrete, checksum-verified backup artifact to depend on.
+- Ongoing: restore, audit logging, and atomic history rewrite are still pending later slices.
 
 Next recommended session:
 
-- `026-backup-creation`
+- `027-atomic-rewrite`
