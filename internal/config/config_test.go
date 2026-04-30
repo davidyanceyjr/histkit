@@ -22,6 +22,15 @@ func TestDefault(t *testing.T) {
 	if !cfg.General.PreviewDiff {
 		t.Fatal("PreviewDiff = false, want true")
 	}
+	if !cfg.Snippets.Enabled {
+		t.Fatal("Snippets.Enabled = false, want true")
+	}
+	if !cfg.Snippets.Builtin {
+		t.Fatal("Snippets.Builtin = false, want true")
+	}
+	if cfg.Snippets.UserFile != "~/.local/share/histkit/snippets.toml" {
+		t.Fatalf("Snippets.UserFile = %q, want default path", cfg.Snippets.UserFile)
+	}
 }
 
 func TestLoadDefaultsWhenPathEmpty(t *testing.T) {
@@ -45,6 +54,11 @@ default_shell = "zsh"
 backup_history = false
 dry_run = true
 preview_diff = false
+
+[snippets]
+enabled = false
+builtin = false
+user_file = "~/custom-snippets.toml"
 `
 
 	if err := os.WriteFile(path, []byte(strings.TrimSpace(content)), 0o644); err != nil {
@@ -67,6 +81,15 @@ preview_diff = false
 	}
 	if cfg.General.PreviewDiff {
 		t.Fatal("PreviewDiff = true, want false")
+	}
+	if cfg.Snippets.Enabled {
+		t.Fatal("Snippets.Enabled = true, want false")
+	}
+	if cfg.Snippets.Builtin {
+		t.Fatal("Snippets.Builtin = true, want false")
+	}
+	if cfg.Snippets.UserFile != "~/custom-snippets.toml" {
+		t.Fatalf("Snippets.UserFile = %q, want custom path", cfg.Snippets.UserFile)
 	}
 }
 
@@ -113,6 +136,9 @@ func TestDefaultPaths(t *testing.T) {
 	}
 	if got, want := paths.HistoryDB, "/tmp/histkit-home/.local/share/histkit/history.db"; got != want {
 		t.Fatalf("HistoryDB = %q, want %q", got, want)
+	}
+	if got, want := paths.SnippetsFile, "/tmp/histkit-home/.local/share/histkit/snippets.toml"; got != want {
+		t.Fatalf("SnippetsFile = %q, want %q", got, want)
 	}
 }
 

@@ -10,7 +10,8 @@ import (
 )
 
 type Config struct {
-	General General `toml:"general"`
+	General  General  `toml:"general"`
+	Snippets Snippets `toml:"snippets"`
 }
 
 type General struct {
@@ -20,11 +21,18 @@ type General struct {
 	PreviewDiff   bool   `toml:"preview_diff"`
 }
 
+type Snippets struct {
+	Enabled  bool   `toml:"enabled"`
+	Builtin  bool   `toml:"builtin"`
+	UserFile string `toml:"user_file"`
+}
+
 type Paths struct {
-	ConfigFile string
-	StateDir   string
-	CacheDir   string
-	HistoryDB  string
+	ConfigFile   string
+	StateDir     string
+	CacheDir     string
+	HistoryDB    string
+	SnippetsFile string
 }
 
 func Default() Config {
@@ -34,6 +42,11 @@ func Default() Config {
 			BackupHistory: true,
 			DryRun:        true,
 			PreviewDiff:   true,
+		},
+		Snippets: Snippets{
+			Enabled:  true,
+			Builtin:  true,
+			UserFile: "~/.local/share/histkit/snippets.toml",
 		},
 	}
 }
@@ -51,6 +64,9 @@ func Load(path string) (Config, error) {
 	if cfg.General.DefaultShell == "" {
 		cfg.General.DefaultShell = Default().General.DefaultShell
 	}
+	if cfg.Snippets.UserFile == "" {
+		cfg.Snippets.UserFile = Default().Snippets.UserFile
+	}
 
 	return cfg, nil
 }
@@ -61,10 +77,11 @@ func DefaultPaths(home string) (Paths, error) {
 	}
 
 	return Paths{
-		ConfigFile: filepath.Join(home, ".config", "histkit", "config.toml"),
-		StateDir:   filepath.Join(home, ".local", "share", "histkit"),
-		CacheDir:   filepath.Join(home, ".cache", "histkit"),
-		HistoryDB:  filepath.Join(home, ".local", "share", "histkit", "history.db"),
+		ConfigFile:   filepath.Join(home, ".config", "histkit", "config.toml"),
+		StateDir:     filepath.Join(home, ".local", "share", "histkit"),
+		CacheDir:     filepath.Join(home, ".cache", "histkit"),
+		HistoryDB:    filepath.Join(home, ".local", "share", "histkit", "history.db"),
+		SnippetsFile: filepath.Join(home, ".local", "share", "histkit", "snippets.toml"),
 	}, nil
 }
 
