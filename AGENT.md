@@ -31,15 +31,16 @@ At the start of every session:
 2. Read `ROADMAP.md`.
 3. Read only the `SKILLS/` files relevant to the current slice.
 4. Inspect the repository state.
-5. Identify the current working state:
+5. Create or switch to the git branch for the session before implementation work begins.
+6. Identify the current working state:
    - session objective
    - active constraints
    - relevant files
    - known unresolved questions
    - known risks
    - expected test/build commands
-6. Confirm the exact session objective.
-7. Implement only that objective.
+7. Confirm the exact session objective.
+8. Implement only that objective.
 
 At the end of every session:
 
@@ -54,6 +55,13 @@ At the end of every session:
 9. Write a completed session note under `SESSIONS/`.
 10. Update `SESSION.md`.
 11. Ensure `SESSION.md` contains enough structured context for the next session to continue without rereading unrelated material.
+12. Stage only the intended session files.
+13. Commit with a human-readable commit message.
+14. Push the session branch.
+15. Open a pull request for the session branch.
+16. Request and obtain human approval before merge and cleanup.
+17. After approval, merge the pull request and clean up the local and remote branch state.
+18. Treat the session as officially closed only after merge and cleanup complete.
 
 ## Working state protocol
 

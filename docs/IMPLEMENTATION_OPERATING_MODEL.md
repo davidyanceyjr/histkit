@@ -18,12 +18,18 @@ RISKS.md keeps danger visible.
 ## Recommended workflow
 
 1. Pick the next roadmap slice.
-2. Rewrite `SESSION.md` for that slice.
-3. Load only the relevant skills.
-4. Implement the slice.
-5. Run tests.
-6. Save a completed session note.
-7. Update `SESSION.md`.
+2. Create or switch to the git branch for that slice.
+3. Rewrite `SESSION.md` for that slice.
+4. Load only the relevant skills.
+5. Implement the slice.
+6. Run tests.
+7. Save a completed session note.
+8. Update `SESSION.md`.
+9. Stage only the intended session files.
+10. Commit with a human-readable message.
+11. Push the branch and open a pull request.
+12. Get human approval before merge and cleanup.
+13. Merge the pull request and clean up the local/remote branch state.
 
 ## Session sizing
 
