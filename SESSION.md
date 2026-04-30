@@ -2,26 +2,27 @@
 
 ## Current session
 
-ID: `014-builtin-snippets`
+ID: `015-pick-candidates`
 
 Status: completed
 
 ## Objective
 
-Implement the initial builtin snippet catalog.
+Implement the initial merged picker candidate layer for history and snippets.
 
 ## Scope
 
 Implement:
 
-- `internal/snippets/builtin.go`
-- curated builtin snippet definitions
-- builtin import helper for the user snippet store
-- deterministic builtin tests
+- `internal/picker/candidates.go`
+- recent-history query helper for picker use
+- merged history/snippet candidate formatting
+- deterministic picker candidate tests
 
 ## Out of scope
 
-- picker integration
+- `fzf` invocation
+- CLI `pick` command surface
 - snippet CLI commands
 - backup tables
 - destructive cleanup
@@ -30,21 +31,21 @@ Implement:
 
 - `SKILLS/testing.md`
 - `SKILLS/snippets.md`
-- `SKILLS/config.md`
+- `SKILLS/fzf-picker.md`
 
 ## Acceptance criteria
 
 - `go test ./...` passes
-- builtin snippets validate as normal snippet model values
-- builtin import seeds missing snippets into the user store
-- existing user snippets are not overwritten by builtin import
-- builtin snippets remain separate from shell history/index storage
+- recent history entries can be queried for picker use
+- history and snippet candidates merge into one in-memory stream
+- candidate formatting uses `[history]` and `[snippet]` labels
+- snippets remain separate from shell history/index storage
 
 ## Current repo state
 
-The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, source detection, SQLite schema initialization, history-entry writer, initial scan pipeline, initial stats command, initial doctor command, snippet model, snippet store, and builtin snippet catalog now exist.
+The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, source detection, SQLite schema initialization, history-entry writer, initial scan pipeline, initial stats command, initial doctor command, snippet model, snippet store, builtin snippet catalog, and picker candidate layer now exist.
 
-There is still no picker integration or snippet CLI surface yet.
+There is still no `fzf` invocation or shell-wrapper integration yet.
 
 ## Decisions already made
 
@@ -85,37 +86,41 @@ No questions answered yet.
 
 Summary:
 
-- Added a curated builtin snippet catalog in `internal/snippets`.
-- Added a builtin import helper that seeds missing snippets into the user store without overwriting existing user snippets.
-- Added deterministic tests for builtin validation, initial import, non-overwriting import behavior, and idempotent imports.
+- Added a recent-history query helper for picker use in `internal/index`.
+- Added an `internal/picker` package that merges recent history and snippets into labeled candidates.
+- Added deterministic tests for candidate merging, display formatting, selection-line parsing, and recent-history ordering.
 
 Files changed:
 
 - SESSION.md
-- internal/snippets/builtin.go
-- internal/snippets/builtin_test.go
-- SESSIONS/014-builtin-snippets.md
+- internal/index/picker.go
+- internal/index/picker_test.go
+- internal/picker/candidates.go
+- internal/picker/candidates_test.go
+- SESSIONS/015-pick-candidates.md
 
 Files read:
 
 - AGENT.md
 - ROADMAP.md
 - SESSION.md
-- SKILLS/testing.md
 - SKILLS/snippets.md
+- SKILLS/fzf-picker.md
 - README.md
 - docs/histkit-implementation-plan.md
+- internal/index/stats.go
+- internal/index/writer.go
 - internal/snippets/model.go
-- internal/snippets/model_test.go
 - internal/snippets/store.go
 - internal/snippets/store_test.go
 
 Tests added:
 
-- TestBuiltinsValidate
-- TestImportBuiltinsSeedsMissingSnippets
-- TestImportBuiltinsDoesNotOverwriteExistingSnippet
-- TestImportBuiltinsIdempotent
+- TestQueryRecentHistoryEntriesOrdersNewestFirst
+- TestQueryRecentHistoryEntriesRequiresDBAndLimit
+- TestLoadCandidatesMergesHistoryAndSnippets
+- TestLoadCandidatesIncludesMissingBuiltinsWithoutOverwritingUserSnippets
+- TestParseSelectedLine
 
 Tests run:
 
@@ -127,36 +132,34 @@ Known failures:
 
 Decisions made:
 
-- Carry forward prior decisions from session `013-snippet-store`.
-- Keep builtin snippets as ordinary `Snippet` values validated through the same model rules as user snippets.
-- Import builtins only when their IDs are missing from the user store; existing user snippets always win.
-- Keep the builtin import helper idempotent so repeated imports do not reorder or duplicate entries.
+- Carry forward prior decisions from session `014-builtin-snippets`.
+- Format picker candidates with exact `[history]` and `[snippet]` labels followed by two spaces and the command text.
+- Keep the candidate merger package-level only for this slice; `fzf` execution and CLI wiring remain deferred.
+- When builtin snippets are included during candidate loading, user-store snippets win on ID collisions.
 
 Commands run:
 
 - `git status --short --branch`
-- `git checkout -b 014-builtin-snippets`
+- `git checkout -b 015-pick-candidates`
 - `sed -n '1,220p' SESSION.md`
 - `sed -n '1,220p' ROADMAP.md`
-- `sed -n '1,220p' SKILLS/snippets.md`
-- `rg -n "builtin snippets|builtin = true|Builtin snippets|import builtins|builtin catalog|snippets]\" README.md docs/histkit-implementation-plan.md SKILLS internal`
-- `sed -n '330,345p' README.md`
-- `sed -n '805,825p' docs/histkit-implementation-plan.md`
-- `sed -n '1,220p' internal/snippets/model.go`
-- `sed -n '1,240p' internal/snippets/store.go`
-- `sed -n '1,240p' internal/snippets/store_test.go`
-- `gofmt -w internal/snippets/builtin.go internal/snippets/builtin_test.go`
+- `sed -n '1,220p' SKILLS/fzf-picker.md`
+- `sed -n '630,670p' docs/histkit-implementation-plan.md`
+- `sed -n '1,220p' internal/index/stats.go`
+- `sed -n '1,260p' internal/index/writer.go`
+- `rg --files internal | rg 'picker|pick'`
+- `gofmt -w internal/index/picker.go internal/index/picker_test.go internal/picker/candidates.go internal/picker/candidates_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- A small curated builtin catalog is sufficient for the first builtin slice before any CLI import surface exists.
+- A package-level candidate merger without `fzf` execution is sufficient for this slice before the actual picker command exists.
 
 Risks introduced or reduced:
 
-- Reduced: builtin snippets now have a deterministic catalog and a safe import path that preserves user-owned entries.
-- Ongoing: no CLI surface exists yet for listing or importing builtins directly.
+- Reduced: history and snippets can now be merged at presentation time without collapsing their underlying storage domains.
+- Ongoing: the actual picker command, `fzf` process handling, and shell wrapper integration are still deferred.
 
 Next recommended session:
 
-- `015-pick-candidates`
+- `016-fzf-picker`
