@@ -2,43 +2,46 @@
 
 ## Current session
 
-ID: `016-session-git-workflow`
+ID: `016-fzf-picker`
 
 Status: completed
 
 ## Objective
 
-Add an explicit git/GitHub workflow requirement to every session.
+Implement the first external `fzf` picker flow and wire it into `histkit pick`.
 
 ## Scope
 
 Implement:
 
-- workflow updates in `AGENT.md`
-- session-start/session-end prompt updates in `SESSION_PROMPT.md`
-- operating-model documentation updates
-- session record and note updates
+- external `fzf` execution for merged picker candidates
+- `histkit pick` CLI wiring
+- selected-command emission to stdout
+- picker-focused tests for success, abort, and missing-`fzf` behavior
 
 ## Out of scope
 
-- automation of GitHub publishing
-- CI enforcement of session workflow
-- changes to product runtime behavior
+- shell wrapper functions for Bash or Zsh
+- picker preview panes
+- placeholder expansion for snippets
+- config-schema expansion for `[fzf]`
 
 ## Relevant skills
 
+- `SKILLS/fzf-picker.md`
 - `SKILLS/testing.md`
 
 ## Acceptance criteria
 
-- repository workflow docs require creating the branch at session start
-- repository workflow docs require staging, committing, pushing, and PR creation at session end
-- repository workflow docs require human approval before merge and cleanup
-- `go test ./...` still passes
+- `histkit pick` invokes external `fzf` rather than an internal fuzzy finder
+- indexed history and snippets are merged only at picker presentation time
+- the selected command is written to stdout
+- missing `fzf` is reported as an error
+- `go test ./...` passes
 
 ## Current repo state
 
-The repository now documents a full session-close workflow that includes branch creation, commit/push, PR creation, human approval, merge, and cleanup.
+`histkit pick` now loads recent indexed history plus configured snippets, invokes external `fzf`, and prints the selected command to stdout. Picker aborts return no selection without mutating history or snippets.
 
 ## Decisions already made
 
@@ -51,8 +54,8 @@ The repository now documents a full session-close workflow that includes branch 
 
 ## Risks to watch
 
-- Keep workflow docs consistent across all session entry points.
-- Do not imply automatic merge authority; preserve explicit human approval.
+- `pick` still depends on an existing populated history index; it does not trigger `scan`.
+- The first picker slice has no preview pane, shell-buffer integration, or dedicated `fzf` config flags yet.
 
 ## Open questions
 
@@ -78,29 +81,50 @@ No questions answered yet.
 
 Summary:
 
-- Updated `AGENT.md` so sessions now require branch creation at start and add/commit/push/PR/human approval/merge/cleanup at end.
-- Updated `SESSION_PROMPT.md` to include the same GitHub workflow expectations in the startup prompt.
-- Updated `docs/IMPLEMENTATION_OPERATING_MODEL.md` so the recommended workflow now includes branch creation, PR creation, and human approval before merge.
+- Added `internal/picker/fzf.go` to run external `fzf`, treat abort/no-selection as non-errors, and parse the chosen candidate line back into a command.
+- Added `internal/cli/pick.go` and root-command wiring so `histkit pick` opens the picker over indexed history and snippets, then prints the selected command to stdout.
+- Extended picker tests and CLI tests to cover successful selection, missing `fzf`, abort behavior, and snippets-disabled candidate loading.
 
 Files changed:
 
-- AGENT.md
-- SESSION_PROMPT.md
-- docs/IMPLEMENTATION_OPERATING_MODEL.md
+- internal/picker/fzf.go
+- internal/picker/fzf_test.go
+- internal/picker/candidates.go
+- internal/picker/candidates_test.go
+- internal/cli/pick.go
+- internal/cli/pick_test.go
+- internal/cli/root.go
+- internal/cli/root_test.go
 - SESSION.md
-- SESSIONS/016-session-git-workflow.md
+- SESSIONS/016-fzf-picker.md
 
 Files read:
 
-- AGENT.md
-- SESSION_PROMPT.md
-- docs/IMPLEMENTATION_OPERATING_MODEL.md
 - SESSION.md
 - ROADMAP.md
+- AGENT.md
+- SKILLS/fzf-picker.md
+- internal/picker/candidates.go
+- internal/picker/candidates_test.go
+- internal/index/picker.go
+- internal/snippets/store.go
+- internal/config/config.go
+- internal/cli/root.go
+- internal/cli/root_test.go
+- internal/cli/doctor_test.go
+- docs/histkit-implementation-plan.md
+- README.md
+- cmd/histkit/main.go
+- internal/snippets/model.go
 
 Tests added:
 
-- None.
+- `TestSelectReturnsErrorWhenFZFNotFound`
+- `TestSelectReturnsChosenCandidate`
+- `TestSelectReturnsNoSelectionForAbort`
+- `TestLoadCandidatesSkipsSnippetsWhenDisabled`
+- `TestExecutePickPrintsSelectedCommand`
+- `TestExecutePickFailsWhenFZFIsMissing`
 
 Tests run:
 
@@ -112,28 +136,38 @@ Known failures:
 
 Decisions made:
 
-- Every session must start by creating or switching to the session branch before implementation work begins.
-- Every session must end by staging intended files, committing with a human-readable message, pushing, and opening a pull request.
-- Merge and cleanup require explicit human approval and mark the official end of a session.
+- Keep the `fzf` invocation slice minimal: no preview pane or shell-specific integration yet.
+- Treat `fzf` exit codes for no match or abort as no-selection rather than command failure.
+- Allow picker candidate loading to skip snippets entirely when snippet support is disabled.
 
 Commands run:
 
-- `git checkout -b 016-session-git-workflow`
-- `sed -n '1,260p' AGENT.md`
-- `sed -n '1,220p' SESSION_PROMPT.md`
-- `sed -n '1,220p' docs/IMPLEMENTATION_OPERATING_MODEL.md`
-- `sed -n '1,220p' SESSION.md`
+- `git checkout -b 016-fzf-picker`
+- `sed -n '1,240p' internal/picker/candidates_test.go`
+- `sed -n '1,240p' internal/index/picker.go`
+- `sed -n '1,240p' internal/snippets/store.go`
+- `sed -n '1,260p' internal/cli/root_test.go`
+- `sed -n '1,260p' internal/cli/doctor_test.go`
+- `sed -n '1,240p' internal/config/config_test.go`
+- `rg -n "pick|fzf" internal/cli README.md configs/config.example.toml docs/histkit-implementation-plan.md -S`
+- `sed -n '1,220p' cmd/histkit/main.go`
+- `sed -n '385,445p' README.md`
+- `sed -n '1,220p' internal/snippets/builtin.go`
+- `gofmt -w internal/picker/fzf.go internal/picker/fzf_test.go internal/picker/candidates.go internal/picker/candidates_test.go internal/cli/pick.go internal/cli/pick_test.go internal/cli/root.go internal/cli/root_test.go`
+- `sed -n '1,220p' internal/snippets/model.go`
+- `gofmt -w internal/picker/fzf_test.go internal/picker/candidates_test.go internal/cli/pick_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- Documentation changes are sufficient for this workflow requirement without additional enforcement code.
+- The first `pick` slice can rely on an already-populated local index instead of triggering a scan automatically.
+- `fzf` abort or no-match should result in no stdout output and no command error from `histkit pick`.
 
 Risks introduced or reduced:
 
-- Reduced: session publishing and closure expectations are now explicit and consistent across the repo’s workflow documents.
-- Ongoing: the workflow is still convention-driven rather than automatically enforced.
+- Reduced: the codebase now has a working end-to-end picker path that preserves history/snippet separation and depends on external `fzf` as planned.
+- Ongoing: shell-buffer insertion still depends on later wrapper work outside the binary.
 
 Next recommended session:
 
-- `016-fzf-picker`
+- `017-shell-wrappers`
