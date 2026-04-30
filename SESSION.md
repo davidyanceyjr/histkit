@@ -2,47 +2,46 @@
 
 ## Current session
 
-ID: `024-quarantine-records`
+ID: `025-backup-model`
 
 Status: completed
 
 ## Objective
 
-Add the initial recoverable quarantine-record model and generation helpers.
+Add the initial backup record model and metadata helpers.
 
 ## Scope
 
 Implement:
 
-- package-level quarantine record model
-- quarantine record validation
-- generation helpers from normalized entries and matched quarantine actions
-- quarantine-focused tests
+- package-level backup record model
+- backup record validation
+- metadata-only backup record creation helpers
+- backup-model-focused tests
 
 ## Out of scope
 
-- quarantine storage persistence
-- quarantine CLI commands
-- restore/export behavior
+- backup file creation
+- checksum computation
+- restore behavior
+- audit logging
 - cleanup apply behavior
-- backup or audit storage
 
 ## Relevant skills
 
-- `SKILLS/sanitizer.md`
+- `SKILLS/backup-restore.md`
 - `SKILLS/testing.md`
 
 ## Acceptance criteria
 
-- repository contains a recoverable quarantine record model
-- quarantine records include source and rule metadata
-- quarantine preview fields avoid re-exposing sensitive content when possible
-- quarantine record generation remains non-destructive
+- repository contains a backup metadata model matching the documented fields
+- backup records include source file, backup path, created time, and checksum
+- deterministic backup identifiers exist for later creation/restore work
 - `go test ./...` passes
 
 ## Current repo state
 
-The repository now has a package-level quarantine record model in `internal/sanitize` plus helpers to generate quarantine records from built-in secret and trivial rule matches.
+The repository now has a package-level backup record model in `internal/backup` plus metadata-only helpers to derive backup IDs and backup paths for later backup creation work.
 
 ## Decisions already made
 
@@ -55,8 +54,8 @@ The repository now has a package-level quarantine record model in `internal/sani
 
 ## Risks to watch
 
-- Quarantine records are still in-memory/package-level only and not persisted yet.
-- Visible quarantine previews are intentionally coarse placeholders rather than nuanced transformed snapshots.
+- Backup records are still metadata-only and do not create or verify files yet.
+- Checksum values are required by the model but still supplied externally until the creation slice lands.
 
 ## Open questions
 
@@ -82,34 +81,34 @@ No questions answered yet.
 
 Summary:
 
-- Added `internal/sanitize/quarantine.go` with a quarantine record model and validation.
-- Added helpers to build quarantine records from matched quarantine actions using the existing preview flow.
-- Added tests for record validation, deterministic ID generation, quarantine-only filtering, and no-record behavior when no quarantine matches exist.
+- Added `internal/backup/model.go` with a backup record model and validation.
+- Added deterministic backup ID generation and metadata-only record creation helpers.
+- Added tests for validation, ID generation, derived backup paths, and invalid input handling.
 
 Files changed:
 
-- internal/sanitize/quarantine.go
-- internal/sanitize/quarantine_test.go
+- internal/backup/model.go
+- internal/backup/model_test.go
 - SESSION.md
-- SESSIONS/024-quarantine-records.md
+- SESSIONS/025-backup-model.md
 
 Files read:
 
 - SESSION.md
 - ROADMAP.md
-- SKILLS/sanitizer.md
+- SKILLS/backup-restore.md
 - docs/histkit-implementation-plan.md
 - README.md
-- internal/sanitize/preview.go
-- internal/sanitize/model.go
+- internal/sanitize/quarantine.go
+- internal/sanitize/quarantine_test.go
 
 Tests added:
 
-- `TestQuarantineRecordValidate`
-- `TestBuildQuarantineRecord`
-- `TestBuildQuarantineRecordsFromEntries`
-- `TestBuildQuarantineRecordRejectsNonQuarantineMatch`
-- `TestBuildQuarantineRecordsReturnsNoneWhenNoQuarantineMatches`
+- `TestRecordValidate`
+- `TestRecordValidateRequiresFields`
+- `TestBackupID`
+- `TestBuildRecord`
+- `TestBuildRecordRejectsInvalidInputs`
 
 Tests run:
 
@@ -121,35 +120,36 @@ Known failures:
 
 Decisions made:
 
-- Keep the first quarantine slice limited to a recoverable record model and generator helpers.
-- Store the original matched command for recovery while using a coarse placeholder for visible preview output.
-- Generate deterministic quarantine IDs from UTC timestamp plus sequence for now.
+- Keep the first backup slice limited to metadata and validation only.
+- Derive backup paths as `<backup-dir>/<backup-id>/<basename(source-file)>`.
+- Use deterministic timestamp-plus-sequence backup IDs for now.
 
 Commands run:
 
-- `git checkout -b 024-quarantine-records`
+- `git checkout -b 025-backup-model`
 - `sed -n '1,220p' SESSION.md`
 - `sed -n '1,220p' ROADMAP.md`
-- `sed -n '1,220p' SKILLS/sanitizer.md`
-- `rg -n "quarantine|recoverable|quarantine records|quarantine support|history_actions|restore" docs/histkit-implementation-plan.md README.md -S`
-- `sed -n '240,256p' docs/histkit-implementation-plan.md`
-- `sed -n '780,840p' docs/histkit-implementation-plan.md`
-- `sed -n '166,187p' README.md`
-- `sed -n '1,260p' internal/sanitize/preview.go`
-- `sed -n '1,260p' internal/sanitize/model.go`
-- `gofmt -w internal/sanitize/quarantine.go internal/sanitize/quarantine_test.go`
+- `sed -n '1,220p' SKILLS/backup-restore.md`
+- `rg -n "backup|restore|checksum|backup_path|source_file|created_at|backup ID|audit" docs/histkit-implementation-plan.md README.md -S`
+- `sed -n '456,470p' docs/histkit-implementation-plan.md`
+- `sed -n '687,705p' docs/histkit-implementation-plan.md`
+- `sed -n '155,163p' README.md`
+- `rg --files internal | rg 'sanitize|backup|audit|restore'`
+- `sed -n '1,260p' internal/sanitize/quarantine.go`
+- `sed -n '1,260p' internal/sanitize/quarantine_test.go`
+- `gofmt -w internal/backup/model.go internal/backup/model_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- Deterministic timestamp-plus-sequence identifiers are sufficient for the first quarantine slice.
-- Coarse preview placeholders are acceptable until richer quarantine presentation exists.
+- Deterministic timestamp-plus-sequence identifiers are sufficient for the first backup slice.
+- Metadata-only path derivation is acceptable before actual file-copy work exists.
 
 Risks introduced or reduced:
 
-- Reduced: the sanitizer now has a recoverable quarantine-record layer instead of only preview text for quarantined actions.
-- Ongoing: persistence and restore/export workflows still need later implementation.
+- Reduced: later backup creation and restore slices now have a concrete validated metadata contract to build on.
+- Ongoing: real backup durability and checksum generation still depend on later slices.
 
 Next recommended session:
 
-- `025-backup-model`
+- `026-backup-creation`
