@@ -2,26 +2,25 @@
 
 ## Current session
 
-ID: `013-snippet-store`
+ID: `014-builtin-snippets`
 
 Status: completed
 
 ## Objective
 
-Implement the initial snippet store over a TOML user file.
+Implement the initial builtin snippet catalog.
 
 ## Scope
 
 Implement:
 
-- `internal/snippets/store.go`
-- TOML-backed snippet load/save/list helpers
-- add/remove snippet operations
-- deterministic store tests
+- `internal/snippets/builtin.go`
+- curated builtin snippet definitions
+- builtin import helper for the user snippet store
+- deterministic builtin tests
 
 ## Out of scope
 
-- builtin snippet catalog
 - picker integration
 - snippet CLI commands
 - backup tables
@@ -36,16 +35,16 @@ Implement:
 ## Acceptance criteria
 
 - `go test ./...` passes
-- snippet TOML files load into validated model values
-- snippet store save/list/add/remove operations work in a temporary directory
-- command templates are preserved exactly through round-trip storage
-- snippet store remains separate from shell history/index storage
+- builtin snippets validate as normal snippet model values
+- builtin import seeds missing snippets into the user store
+- existing user snippets are not overwritten by builtin import
+- builtin snippets remain separate from shell history/index storage
 
 ## Current repo state
 
-The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, source detection, SQLite schema initialization, history-entry writer, initial scan pipeline, initial stats command, initial doctor command, snippet model, and snippet store now exist.
+The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, source detection, SQLite schema initialization, history-entry writer, initial scan pipeline, initial stats command, initial doctor command, snippet model, snippet store, and builtin snippet catalog now exist.
 
-There is still no builtin snippet catalog or picker integration yet.
+There is still no picker integration or snippet CLI surface yet.
 
 ## Decisions already made
 
@@ -86,18 +85,16 @@ No questions answered yet.
 
 Summary:
 
-- Added a TOML-backed snippet store with load/save/list/add/remove operations.
-- Added snippet config defaults for the user snippet file path and default path tracking in `config.Paths`.
-- Added deterministic tests for round-trip storage, duplicate-ID rejection, and snippet add/remove behavior.
+- Added a curated builtin snippet catalog in `internal/snippets`.
+- Added a builtin import helper that seeds missing snippets into the user store without overwriting existing user snippets.
+- Added deterministic tests for builtin validation, initial import, non-overwriting import behavior, and idempotent imports.
 
 Files changed:
 
 - SESSION.md
-- internal/config/config.go
-- internal/config/config_test.go
-- internal/snippets/store.go
-- internal/snippets/store_test.go
-- SESSIONS/013-snippet-store.md
+- internal/snippets/builtin.go
+- internal/snippets/builtin_test.go
+- SESSIONS/014-builtin-snippets.md
 
 Files read:
 
@@ -106,21 +103,19 @@ Files read:
 - SESSION.md
 - SKILLS/testing.md
 - SKILLS/snippets.md
-- SKILLS/config.md
 - README.md
 - docs/histkit-implementation-plan.md
-- internal/config/config.go
-- internal/config/config_test.go
 - internal/snippets/model.go
 - internal/snippets/model_test.go
+- internal/snippets/store.go
+- internal/snippets/store_test.go
 
 Tests added:
 
-- TestStoreListMissingFileReturnsEmpty
-- TestStoreSaveAndListRoundTrip
-- TestStoreListRejectsDuplicateIDs
-- TestStoreAddAndRemove
-- TestStoreRemoveMissingIDFails
+- TestBuiltinsValidate
+- TestImportBuiltinsSeedsMissingSnippets
+- TestImportBuiltinsDoesNotOverwriteExistingSnippet
+- TestImportBuiltinsIdempotent
 
 Tests run:
 
@@ -132,40 +127,36 @@ Known failures:
 
 Decisions made:
 
-- Carry forward prior decisions from session `012-snippet-model`.
-- Treat a missing user snippet file as an empty store rather than an error.
-- Persist snippets as `[[snippets]]` TOML records using the existing model validation rules.
-- Keep add/remove operations file-backed and in-memory ordered; do not introduce search or sorting semantics yet.
+- Carry forward prior decisions from session `013-snippet-store`.
+- Keep builtin snippets as ordinary `Snippet` values validated through the same model rules as user snippets.
+- Import builtins only when their IDs are missing from the user store; existing user snippets always win.
+- Keep the builtin import helper idempotent so repeated imports do not reorder or duplicate entries.
 
 Commands run:
 
 - `git status --short --branch`
-- `git checkout -b 013-snippet-store`
+- `git checkout -b 014-builtin-snippets`
 - `sed -n '1,220p' SESSION.md`
 - `sed -n '1,220p' ROADMAP.md`
 - `sed -n '1,220p' SKILLS/snippets.md`
-- `sed -n '635,715p' docs/histkit-implementation-plan.md`
-- `sed -n '390,430p' README.md`
-- `sed -n '1,220p' internal/config/config.go`
+- `rg -n "builtin snippets|builtin = true|Builtin snippets|import builtins|builtin catalog|snippets]\" README.md docs/histkit-implementation-plan.md SKILLS internal`
+- `sed -n '330,345p' README.md`
+- `sed -n '805,825p' docs/histkit-implementation-plan.md`
 - `sed -n '1,220p' internal/snippets/model.go`
-- `sed -n '1,220p' internal/snippets/model_test.go`
-- `rg -n "snippet store|snippets.toml|snippets list|snippets add|snippets remove|user_file|parse snippets TOML|search/list snippets" docs/histkit-implementation-plan.md README.md SKILLS`
-- `sed -n '618,680p' docs/histkit-implementation-plan.md`
-- `sed -n '190,225p' README.md`
-- `sed -n '1,220p' internal/config/config_test.go`
-- `sed -n '1,220p' SKILLS/config.md`
-- `gofmt -w internal/config/config.go internal/config/config_test.go internal/snippets/store.go internal/snippets/store_test.go`
+- `sed -n '1,240p' internal/snippets/store.go`
+- `sed -n '1,240p' internal/snippets/store_test.go`
+- `gofmt -w internal/snippets/builtin.go internal/snippets/builtin_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- A single user TOML file is sufficient for the first snippet-store slice before builtin catalogs are introduced.
+- A small curated builtin catalog is sufficient for the first builtin slice before any CLI import surface exists.
 
 Risks introduced or reduced:
 
-- Reduced: snippet persistence now exists in a store separate from shell history and SQLite index data.
-- Ongoing: builtin snippet catalogs and snippet CLI surfaces are still deferred.
+- Reduced: builtin snippets now have a deterministic catalog and a safe import path that preserves user-owned entries.
+- Ongoing: no CLI surface exists yet for listing or importing builtins directly.
 
 Next recommended session:
 
-- `014-builtin-snippets`
+- `015-pick-candidates`
