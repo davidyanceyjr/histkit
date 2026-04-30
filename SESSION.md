@@ -2,31 +2,32 @@
 
 ## Current session
 
-ID: `010-stats-command`
+ID: `011-doctor-command-v1`
 
 Status: completed
 
 ## Objective
 
-Implement the initial `stats` command over the SQLite history index.
+Implement the initial `doctor` command for basic local environment checks.
 
 ## Scope
 
 Implement:
 
-- `internal/cli/stats.go`
-- index-backed aggregate queries for `history_entries`
-- shell/source count reporting
+- `internal/cli/doctor.go`
+- basic environment checks for config, paths, history sources, database access, and `fzf`
+- compact doctor output
 - deterministic CLI tests using temporary home directories
 
 ## Out of scope
 
+- systemd user-unit checks
+- JSON output
 - run metadata writer logic
 - sanitizer metadata tables
 - snippet tables
 - backup tables
 - destructive cleanup
-- duplicate analytics beyond current schema-backed counts
 
 ## Relevant skills
 
@@ -39,15 +40,16 @@ Implement:
 
 - `go test ./...` passes
 - `histkit stats` reads the SQLite index and prints total indexed entries
-- `histkit stats` prints counts by shell and source file
-- the stats path remains read-only
-- deterministic CLI tests cover empty and populated indexes through temporary home directories
+- `histkit doctor` reports basic environment checks with readable statuses
+- default and explicit config paths are evaluated safely
+- the doctor path remains non-destructive
+- deterministic CLI tests cover fresh-home warnings and healthy local setups
 
 ## Current repo state
 
-The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, source detection, SQLite schema initialization, history-entry writer, initial scan pipeline, and initial stats command now exist.
+The CLI bootstrap, config/path package, history model, Bash/Zsh parsers, source detection, SQLite schema initialization, history-entry writer, initial scan pipeline, initial stats command, and initial doctor command now exist.
 
-The doctor command is still a placeholder and richer analytics remain out of scope.
+Systemd-specific doctor checks and JSON output remain out of scope.
 
 ## Decisions already made
 
@@ -88,20 +90,19 @@ No questions answered yet.
 
 Summary:
 
-- Replaced the stats placeholder with an index-backed `stats` command.
-- Added SQLite aggregate queries for total indexed entries plus shell and source breakdowns.
-- Added deterministic tests for empty and populated stats output and the underlying query layer.
+- Replaced the doctor placeholder with a read-only environment check command.
+- Added checks for config readability, state directory readiness, history source detection, history database accessibility, and `fzf` presence.
+- Added deterministic CLI tests for fresh-home warnings, healthy local setups, and explicit missing-config failures.
 
 Files changed:
 
 - SESSION.md
 - internal/cli/root.go
 - internal/cli/root_test.go
-- internal/cli/stats.go
-- internal/cli/stats_test.go
-- internal/index/stats.go
-- internal/index/stats_test.go
-- SESSIONS/010-stats-command.md
+- internal/cli/doctor.go
+- internal/cli/doctor_test.go
+- internal/doctor/checks.go
+- SESSIONS/011-doctor-command-v1.md
 
 Files read:
 
@@ -110,20 +111,20 @@ Files read:
 - SESSION.md
 - SKILLS/sqlite.md
 - SKILLS/testing.md
+- SKILLS/history-parsing.md
 - SKILLS/go-cli.md
 - README.md
 - docs/histkit-implementation-plan.md
-- internal/cli/stats.go
-- internal/cli/scan_test.go
-- internal/index/schema.go
+- internal/cli/doctor.go
+- internal/cli/root_test.go
+- internal/config/config.go
+- internal/history/detect.go
 
 Tests added:
 
-- TestExecuteStatsEmptyIndex
-- TestExecuteStatsReportsShellAndSourceCounts
-- TestQueryHistoryStatsEmptyDatabase
-- TestQueryHistoryStatsGroupedCounts
-- TestQueryHistoryStatsRequiresDB
+- TestExecuteDoctorReportsWarningsForFreshHome
+- TestExecuteDoctorReportsHealthyChecks
+- TestExecuteDoctorRejectsMissingExplicitConfig
 
 Tests run:
 
@@ -135,40 +136,41 @@ Known failures:
 
 Decisions made:
 
-- Carry forward prior decisions from session `009-scan-pipeline`.
-- Initialize the SQLite schema before reading stats so first-run stats on a new machine stays self-contained and returns zeros.
-- Keep the first stats report narrow: total indexed entries plus counts by shell and source.
-- Sort grouped counts by descending count and then ascending name for deterministic output.
+- Carry forward prior decisions from session `010-stats-command`.
+- Keep `doctor` read-only by checking writable ancestors and existing files instead of creating state on disk.
+- Treat a missing default config file as OK because built-in defaults are valid.
+- Treat a missing explicit config file as a failed doctor check rather than a command error so the report stays complete.
 
 Commands run:
 
 - `git status --short --branch`
-- `git checkout -b 010-stats-command`
+- `git checkout -b 011-doctor-command-v1`
 - `sed -n '1,240p' AGENT.md`
 - `sed -n '1,220p' ROADMAP.md`
 - `sed -n '1,220p' SESSION.md`
+- `sed -n '1,220p' internal/cli/doctor.go`
+- `sed -n '1,220p' internal/cli/root_test.go`
+- `sed -n '90,140p' README.md`
+- `sed -n '210,235p' docs/histkit-implementation-plan.md`
+- `rg -n "doctor" README.md docs/histkit-implementation-plan.md internal configs`
 - `sed -n '1,220p' SKILLS/sqlite.md`
 - `sed -n '1,220p' SKILLS/testing.md`
+- `sed -n '1,220p' SKILLS/history-parsing.md`
 - `sed -n '1,220p' SKILLS/go-cli.md`
-- `sed -n '120,170p' README.md`
-- `sed -n '220,245p' docs/histkit-implementation-plan.md`
-- `sed -n '780,820p' docs/histkit-implementation-plan.md`
-- `sed -n '1,220p' internal/cli/stats.go`
-- `sed -n '1,260p' internal/index/schema.go`
-- `sed -n '1,260p' internal/cli/scan_test.go`
-- `rg -n "stats" README.md docs/histkit-implementation-plan.md internal`
-- `gofmt -w internal/index/stats.go internal/index/stats_test.go internal/cli/stats.go internal/cli/stats_test.go internal/cli/root.go internal/cli/root_test.go`
+- `sed -n '1,260p' internal/config/config.go`
+- `sed -n '1,220p' internal/history/detect.go`
+- `gofmt -w internal/doctor/checks.go internal/cli/doctor.go internal/cli/doctor_test.go internal/cli/root.go internal/cli/root_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- A compact text report with total, per-shell, and per-source counts is sufficient for this slice.
+- A compact text report with `ok`/`warn`/`fail` statuses is sufficient for this first doctor slice.
 
 Risks introduced or reduced:
 
-- Reduced: `histkit stats` now exercises the real SQLite index instead of a placeholder path.
-- Ongoing: richer analytics such as duplicate reduction, common commands, and snippet totals remain deferred.
+- Reduced: `histkit doctor` now surfaces common environment problems before users attempt scan or stats operations.
+- Ongoing: systemd-specific checks and JSON output are still deferred.
 
 Next recommended session:
 
-- `011-doctor-command-v1`
+- `012-snippet-model`
