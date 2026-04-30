@@ -2,46 +2,48 @@
 
 ## Current session
 
-ID: `017-shell-wrappers`
+ID: `018-rule-model`
 
 Status: completed
 
 ## Objective
 
-Add lightweight Bash and Zsh wrapper scripts for interactive `histkit pick` usage.
+Add the initial sanitization rule and rule-match model types with validation.
 
 ## Scope
 
 Implement:
 
-- Bash wrapper script for loading picker output into the readline buffer
-- Zsh wrapper script for loading picker output into the shell editing buffer
-- README usage examples for sourcing and binding the wrapper scripts
-- wrapper-focused tests
+- `internal/sanitize` package model types
+- supported rule/action/confidence enums
+- rule validation
+- rule-match validation
+- collection validation tests
 
 ## Out of scope
 
-- changes to `histkit pick` core command behavior
-- preview panes or placeholder expansion
-- automatic shell-profile installation
-- sanitizer or cleanup features
+- rule matching execution
+- redaction transforms
+- CLI config loading for cleanup rules
+- dry-run preview output
+- quarantine persistence
 
 ## Relevant skills
 
-- `SKILLS/fzf-picker.md`
+- `SKILLS/sanitizer.md`
 - `SKILLS/testing.md`
 
 ## Acceptance criteria
 
-- repository contains sourceable Bash and Zsh wrapper scripts
-- wrappers call `histkit pick`, capture stdout, and place the result into the active shell buffer
-- wrappers are documented in `README.md`
-- automated validation covers wrapper behavior where feasible
+- repository contains rule-model types for the sanitizer engine
+- supported rule classes and actions match the implementation plan
+- invalid rule definitions are rejected
+- invalid rule-match records are rejected
 - `go test ./...` passes
 
 ## Current repo state
 
-The repository now includes Bash and Zsh wrapper scripts under `contrib/` so interactive shells can bind `Ctrl-R` to `histkit pick` and replace the current editing buffer with the selected command.
+The repository now has an `internal/sanitize` package with validated rule and rule-match model types covering exact, contains, regex, keyword-group, and heuristic rule classes.
 
 ## Decisions already made
 
@@ -54,8 +56,8 @@ The repository now includes Bash and Zsh wrapper scripts under `contrib/` so int
 
 ## Risks to watch
 
-- Zsh is not installed in this environment, so runtime validation here covers Bash directly and verifies the Zsh wrapper structurally.
-- Wrapper installation remains manual; users must source the script and bind the helper in their shell config.
+- Rule definitions are not wired into config loading yet.
+- Matching, transform, and dry-run behavior still depend on later slices.
 
 ## Open questions
 
@@ -81,38 +83,38 @@ No questions answered yet.
 
 Summary:
 
-- Added `contrib/histkit.bash` and `contrib/histkit.zsh` as lightweight sourceable wrappers around `histkit pick`.
-- Added `contrib/wrappers_test.go` to exercise the Bash wrapper directly and verify key Zsh wrapper behavior from file contents.
-- Updated `README.md` with shell-wrapper setup examples for Bash and Zsh.
+- Added `internal/sanitize/model.go` with rule-type, action, confidence, rule, and rule-match definitions.
+- Added validation for supported rule classes, regex compilation, heuristic detector naming, and redact-match output requirements.
+- Added tests covering valid models, invalid inputs, duplicate rule names, and valid/invalid rule-match records.
 
 Files changed:
 
-- README.md
-- contrib/histkit.bash
-- contrib/histkit.zsh
-- contrib/wrappers_test.go
+- internal/sanitize/model.go
+- internal/sanitize/model_test.go
 - SESSION.md
-- SESSIONS/017-shell-wrappers.md
+- SESSIONS/018-rule-model.md
 
 Files read:
 
 - SESSION.md
 - ROADMAP.md
-- SKILLS/fzf-picker.md
+- SKILLS/sanitizer.md
 - docs/histkit-implementation-plan.md
 - README.md
-- configs/config.example.toml
+- internal/snippets/model.go
+- internal/snippets/model_test.go
 
 Tests added:
 
-- `TestBashWrapperLoadsSelectionIntoReadlineBuffer`
-- `TestBashWrapperLeavesBufferUntouchedOnEmptySelection`
-- `TestZshWrapperScriptContainsBindingHelper`
+- `TestRuleValidateAcceptsSupportedRuleTypes`
+- `TestRuleValidateRejectsInvalidRules`
+- `TestValidateRulesRejectsDuplicateNames`
+- `TestValidateRulesAcceptsDistinctRules`
+- `TestRuleMatchValidate`
+- `TestRuleMatchValidateRejectsInvalidMatches`
 
 Tests run:
 
-- `bash -n contrib/histkit.bash`
-- `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./contrib`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Known failures:
@@ -121,41 +123,37 @@ Known failures:
 
 Decisions made:
 
-- Keep shell integration outside the Go binary in sourceable wrapper scripts under `contrib/`.
-- Provide explicit binding helper functions rather than auto-modifying shell key bindings when sourced.
-- Replace the current editing buffer with the selected command rather than attempting partial insertion.
+- Keep the first sanitizer slice limited to model and validation behavior.
+- Represent rule confidence as `low`, `medium`, or `high` to match the documented configuration shape.
+- Require redact matches to carry both `Before` and `After` values.
 
 Commands run:
 
-- `git checkout -b 017-shell-wrappers`
+- `git checkout -b 018-rule-model`
 - `sed -n '1,220p' SESSION.md`
 - `sed -n '1,220p' ROADMAP.md`
-- `sed -n '1,220p' SKILLS/fzf-picker.md`
-- `sed -n '665,710p' docs/histkit-implementation-plan.md`
-- `sed -n '330,370p' README.md`
-- `sed -n '460,478p' README.md`
-- `rg --files | rg '^contrib/|shell|bash|zsh'`
-- `sed -n '1,220p' configs/config.example.toml`
-- `bash --version | head -n 1`
-- `zsh --version`
-- `rg -n "contrib/|histkit.bash|histkit.zsh|Shell integration|wrapper" README.md docs -S`
-- `sed -n '850,885p' docs/histkit-implementation-plan.md`
-- `sed -n '990,1018p' docs/histkit-implementation-plan.md`
-- `gofmt -w contrib/wrappers_test.go`
-- `bash -n contrib/histkit.bash`
-- `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./contrib`
+- `sed -n '1,220p' SKILLS/sanitizer.md`
+- `rg -n "rule model|rules|sanitize|quarantine|redact|confidence|action|heuristic" docs/histkit-implementation-plan.md README.md internal -S`
+- `sed -n '430,620p' docs/histkit-implementation-plan.md`
+- `rg --files internal | rg 'sanitize|rule|clean'`
+- `sed -n '268,390p' docs/histkit-implementation-plan.md`
+- `sed -n '260,320p' README.md`
+- `sed -n '396,432p' README.md`
+- `sed -n '1,240p' internal/snippets/model.go`
+- `sed -n '1,260p' internal/snippets/model_test.go`
+- `gofmt -w internal/sanitize/model.go internal/sanitize/model_test.go`
 - `GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod GOPATH=$(pwd)/.cache/go-path go test ./...`
 
 Assumptions made:
 
-- A manual source-and-bind workflow is sufficient for the first shell-wrapper slice.
-- Structural verification of the Zsh wrapper is acceptable in this environment because `zsh` is not installed locally.
+- A `Detector` string is sufficient for heuristic rule identity in the model before execution logic exists.
+- Regex compilation belongs in model validation so invalid rule definitions fail early.
 
 Risks introduced or reduced:
 
-- Reduced: interactive shell integration now exists without coupling the Go binary to shell editor internals.
-- Ongoing: wrapper ergonomics may need polish later, especially once preview panes or richer shell integration exist.
+- Reduced: the sanitizer engine now has a concrete validated model surface for later matching and preview slices.
+- Ongoing: there is still no end-to-end cleanup flow until matching and preview work land.
 
 Next recommended session:
 
-- `018-rule-model`
+- `019-rule-matching`
