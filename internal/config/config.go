@@ -33,6 +33,7 @@ type Paths struct {
 	CacheDir     string
 	HistoryDB    string
 	SnippetsFile string
+	AuditLog     string
 }
 
 func Default() Config {
@@ -82,6 +83,7 @@ func DefaultPaths(home string) (Paths, error) {
 		CacheDir:     filepath.Join(home, ".cache", "histkit"),
 		HistoryDB:    filepath.Join(home, ".local", "share", "histkit", "history.db"),
 		SnippetsFile: filepath.Join(home, ".local", "share", "histkit", "snippets.toml"),
+		AuditLog:     filepath.Join(home, ".local", "share", "histkit", "audit.log"),
 	}, nil
 }
 

@@ -140,6 +140,9 @@ func TestDefaultPaths(t *testing.T) {
 	if got, want := paths.SnippetsFile, "/tmp/histkit-home/.local/share/histkit/snippets.toml"; got != want {
 		t.Fatalf("SnippetsFile = %q, want %q", got, want)
 	}
+	if got, want := paths.AuditLog, "/tmp/histkit-home/.local/share/histkit/audit.log"; got != want {
+		t.Fatalf("AuditLog = %q, want %q", got, want)
+	}
 }
 
 func TestExpandUserPath(t *testing.T) {
