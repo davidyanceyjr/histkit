@@ -31,3 +31,7 @@ The implementation agent must treat `SESSION.md` as the active work contract.
 ## 008: Skills are loaded narrowly
 
 The implementation agent should read only the skill files listed in `SESSION.md`.
+
+## 009: Delete actions remove matching history lines during apply
+
+For `histkit clean --apply`, rules whose action is `delete` remove matching history lines from the rewritten history file. This behavior is guarded by per-run backups, atomic rewrite, and audit logging.

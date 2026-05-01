@@ -34,6 +34,17 @@ One bad cleanup can kill the tool.
 - Restore support.
 - Plain explanations for every destructive action.
 
+## Direct deletion mistakes
+
+Delete rules can remove benign commands that users later expected to keep.
+
+### Mitigation
+
+- Keep delete rules narrow and explicit.
+- Require dry-run and explicit apply separation.
+- Create a backup before every apply.
+- Append an audit record for every successful apply.
+
 ## Config sprawl
 
 Too much config too early will slow implementation.
