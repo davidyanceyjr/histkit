@@ -2,28 +2,28 @@
 
 ## Current session
 
-ID: `030-restore-command`
+ID: `031-failure-recovery-tests`
 
 Status: completed
 
 ## Objective
 
-Add the first `histkit restore` slice for listing backup records and restoring a selected backup safely.
+Add focused failure-recovery coverage for safe apply and restore paths.
 
 ## Scope
 
 Implement:
 
-- backup-record persistence alongside created backup files
-- a restore path that loads backup metadata, validates backup integrity, and rewrites the original history file atomically
-- `restore` CLI wiring for backup listing and restore-by-id
-- focused tests for metadata persistence and restore behavior
+- tests for cleanup-apply behavior when audit logging fails after backup creation and atomic rewrite
+- tests for restore behavior when audit logging fails after a successful restore
+- tests for backup-creation cleanup when metadata persistence fails
+- tests for restore checksum mismatch preserving the target file
 
 ## Out of scope
 
-- audit-list CLI wiring
-- backup pruning or retention policies
-- failure-recovery matrix testing across partial apply or restore failures
+- new user-facing commands
+- backup retention or migration for metadata-less backups
+- broader process or concurrency control for live shell sessions
 
 ## Relevant skills
 
@@ -32,14 +32,14 @@ Implement:
 
 ## Acceptance criteria
 
-- `histkit restore` lists available backups when no backup ID is given
-- `histkit restore <backup-id>` validates backup integrity and restores the original history file atomically
-- successful restore operations append an audit record
+- backup creation leaves no stray backup file when metadata persistence fails
+- failed restore integrity checks leave the target history file unchanged
+- failed audit logging after apply or restore returns an error while preserving the successfully rewritten/restored history file and its backup
 - `go test ./...` passes
 
 ## Current repo state
 
-The repository now has backup creation, atomic rewrite, audit logging, cleanup apply, and an initial restore command backed by persisted backup metadata files.
+Milestone 4 now has coverage for key failure boundaries in backup creation, cleanup apply, and restore behavior.
 
 ## Decisions already made
 
@@ -52,8 +52,8 @@ The repository now has backup creation, atomic rewrite, audit logging, cleanup a
 
 ## Risks to watch
 
-- Older backups created before metadata persistence will not be restorable through this first metadata-driven restore flow.
-- Later failure-recovery testing still needs to exercise interrupted apply and restore scenarios.
+- Live shell race conditions remain a product risk even though atomic writes and backups are covered.
+- Legacy backups created before metadata persistence still remain outside the current restore flow.
 
 ## Open questions
 
@@ -79,45 +79,34 @@ No questions answered this session.
 
 Summary:
 
-- Added persisted `record.toml` metadata for every new backup so restore can recover source path, checksum, and creation time safely.
-- Added backup listing and restore helpers that load metadata, verify checksum integrity, and rewrite the original history file atomically.
-- Added the `histkit restore` command to list available backups or restore one by ID, with audit-log entries for successful restores.
+- Added a backup-creation failure test proving the copied backup file is removed if metadata persistence fails.
+- Added restore integrity coverage proving checksum mismatch leaves the target history file unchanged.
+- Added apply and restore CLI recovery tests proving audit-log append failures return an error after the history file change is already safely committed, while backups and restored content remain intact.
 
 Files changed:
 
 - SESSION.md
-- SESSIONS/030-restore-command.md
-- internal/backup/create.go
-- internal/backup/store.go
+- SESSIONS/031-failure-recovery-tests.md
+- internal/backup/create_test.go
 - internal/backup/store_test.go
-- internal/cli/restore.go
+- internal/cli/clean_test.go
 - internal/cli/restore_test.go
-- internal/cli/root.go
-- internal/cli/root_test.go
 
 Files read:
 
 - SESSION.md
 - ROADMAP.md
 - README.md
-- docs/histkit-implementation-plan.md
-- internal/backup/create.go
-- internal/backup/create_test.go
-- internal/backup/atomic_test.go
-- internal/cli/root_test.go
-- internal/audit/model_test.go
-- internal/audit/log_test.go
-- internal/cli/clean_test.go
+- internal/cli/clean.go
+- internal/cli/restore.go
+- internal/backup/store.go
 
 Tests added:
 
-- `TestWriteRecordAndLoadRecord`
-- `TestListRecordsSortsNewestFirst`
-- `TestRestoreRewritesTargetFromBackup`
-- `TestRestoreRejectsChecksumMismatch`
-- `TestExecuteRestoreListsBackupsWhenNoIDProvided`
-- `TestExecuteRestoreRestoresSpecificBackupAndAudits`
-- `TestExecuteRestoreNoBackups`
+- `TestCreateRemovesBackupFileWhenRecordWriteFails`
+- restore checksum-mismatch preservation assertion in `TestRestoreRejectsChecksumMismatch`
+- `TestExecuteCleanApplyReturnsErrorButKeepsRewriteWhenAuditAppendFails`
+- `TestExecuteRestoreReturnsErrorButKeepsRestoredFileWhenAuditAppendFails`
 
 Tests run:
 
@@ -130,31 +119,23 @@ Known failures:
 
 Decisions made:
 
-- Persist backup metadata as `record.toml` under each backup ID directory.
-- Use metadata-driven restore instead of inferring source paths from backup filenames alone.
-- Log restore operations through the existing audit log using a narrow `restore` rule marker and `apply=false`.
+- Treat audit logging as post-commit bookkeeping for apply and restore: a logging failure is surfaced as an error, but the successfully rewritten or restored history file is not rolled back.
+- Treat backup metadata persistence as part of backup creation completeness: if it fails, the copied backup payload is removed.
 
 Commands run:
 
 - `git status --short --branch`
 - `sed -n '1,240p' SESSION.md`
 - `sed -n '1,220p' ROADMAP.md`
-- `rg -n "restore|backup|audit|clean apply|RewriteAtomic|BackupID|backups" internal cmd README.md docs -g '!**/*_test.go'`
-- `git checkout -b 030-restore-command`
-- `sed -n '150,175p' README.md`
-- `sed -n '236,245p' docs/histkit-implementation-plan.md`
-- `sed -n '689,706p' docs/histkit-implementation-plan.md`
-- `sed -n '1,220p' internal/backup/create_test.go`
-- `sed -n '1,220p' internal/backup/atomic_test.go`
-- `sed -n '1,240p' internal/cli/root_test.go`
-- `sed -n '1,240p' internal/audit/model_test.go`
-- `sed -n '1,220p' internal/audit/log_test.go`
-- `sed -n '1,220p' internal/cli/clean_test.go`
-- `gofmt -w internal/backup/store.go internal/backup/store_test.go internal/backup/create.go internal/cli/restore.go internal/cli/restore_test.go internal/cli/root.go internal/cli/root_test.go`
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/backup ./internal/cli`
-- `gofmt -w internal/backup/store.go`
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/backup ./internal/cli`
-- `gofmt -w internal/cli/restore.go`
+- `rg -n "failure|recovery|restore|clean apply|backup|audit" internal README.md docs -g '!**/*_test.go'`
+- `git checkout -b 031-failure-recovery-tests`
+- `sed -n '1,260p' internal/cli/clean.go`
+- `sed -n '1,260p' internal/cli/restore.go`
+- `sed -n '1,260p' internal/backup/store.go`
+- `sed -n '560,590p' README.md`
+- `sed -n '1,260p' internal/cli/clean_test.go`
+- `sed -n '1,260p' internal/cli/restore_test.go`
+- `gofmt -w internal/backup/create_test.go internal/backup/store_test.go internal/cli/clean_test.go internal/cli/restore_test.go`
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/backup ./internal/cli`
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
 - `git status --short`
@@ -162,15 +143,13 @@ Commands run:
 
 Assumptions made:
 
-- Backup metadata persisted from this slice forward is the supported restore source of truth; older metadata-less backups are outside this slice.
-- A restore audit entry can reuse the existing audit-record shape with `RuleNames=["restore"]` and zero counts.
+- No rollback is attempted after a successful atomic rewrite or restore if only audit logging fails; the backup remains the recovery mechanism.
 
 Risks introduced or reduced:
 
-- Reduced: restore now validates backup checksum before replacing the target file.
-- Reduced: restore now uses persisted source-path metadata instead of guessing from backup filenames.
-- Ongoing: legacy backups without metadata are not yet surfaced through the restore command.
+- Reduced: failure boundaries for apply and restore are now documented in executable tests instead of only implicit in implementation order.
+- Reduced: backup creation now has explicit regression coverage for metadata-write cleanup.
 
 Next recommended session:
 
-- `031-failure-recovery-tests`
+- `032-systemd-user-service`
