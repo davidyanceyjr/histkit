@@ -2,27 +2,28 @@
 
 ## Current session
 
-ID: `029-clean-apply`
+ID: `030-restore-command`
 
 Status: completed
 
 ## Objective
 
-Implement the first safe `histkit clean --apply` slice with backup, atomic rewrite, and audit logging.
+Add the first `histkit restore` slice for listing backup records and restoring a selected backup safely.
 
 ## Scope
 
 Implement:
 
-- initial `clean` CLI wiring for `--dry-run` and `--apply`
-- apply-path plumbing that reads detected shell history, evaluates built-in cleanup rules, creates a backup, rewrites the history file atomically, and appends an audit record
-- focused tests for safe apply behavior in temporary history files
+- backup-record persistence alongside created backup files
+- a restore path that loads backup metadata, validates backup integrity, and rewrites the original history file atomically
+- `restore` CLI wiring for backup listing and restore-by-id
+- focused tests for metadata persistence and restore behavior
 
 ## Out of scope
 
-- restore command wiring
 - audit-list CLI wiring
-- policy expansion beyond the current built-in rules
+- backup pruning or retention policies
+- failure-recovery matrix testing across partial apply or restore failures
 
 ## Relevant skills
 
@@ -31,14 +32,14 @@ Implement:
 
 ## Acceptance criteria
 
-- `histkit clean --dry-run` renders the existing cleanup preview through the CLI
-- `histkit clean --apply` removes matching history lines for `delete` rules while still requiring backup, atomic rewrite, and audit logging
-- every successful apply creates a backup, rewrites history atomically, and appends an audit record
+- `histkit restore` lists available backups when no backup ID is given
+- `histkit restore <backup-id>` validates backup integrity and restores the original history file atomically
+- successful restore operations append an audit record
 - `go test ./...` passes
 
 ## Current repo state
 
-The repository now has a working `clean` command with dry-run preview plus the first apply path for built-in Bash and Zsh cleanup rules.
+The repository now has backup creation, atomic rewrite, audit logging, cleanup apply, and an initial restore command backed by persisted backup metadata files.
 
 ## Decisions already made
 
@@ -51,8 +52,8 @@ The repository now has a working `clean` command with dry-run preview plus the f
 
 ## Risks to watch
 
-- Shell history rewrite logic must preserve valid shell-specific line formats after redaction or quarantine transforms.
-- Later restore and failure-recovery slices still need to complete end-to-end rollback behavior for apply failures beyond per-file atomic writes.
+- Older backups created before metadata persistence will not be restorable through this first metadata-driven restore flow.
+- Later failure-recovery testing still needs to exercise interrupted apply and restore scenarios.
 
 ## Open questions
 
@@ -72,89 +73,55 @@ Every answered question must be recorded here before it is removed from the acti
 
 ### Answered this session
 
-### Q001: Should `clean --apply` be allowed to delete entries directly for rules whose action is `delete`?
-
-- Status: answered
-- Answer: yes, remove matching history lines
-- Source: direct user answer in this session
-- Date answered: 2026-05-01
-- Decision file updated: yes
-- Risk file updated: yes
+No questions answered this session.
 
 ## End-of-session notes
 
 Summary:
 
-- Added the first `clean` CLI command with default dry-run behavior plus explicit `--apply` mode and `--shell` or `--config` support.
-- Added a shell-aware cleanup apply helper that preserves unmatched raw lines, removes `delete` matches, redacts secret-bearing commands, quarantines risky commands with a placeholder, and preserves Zsh extended-history metadata during rewrites.
-- Wired apply mode to create per-source backups, rewrite history atomically, and append audit records for successful applies.
-- Recorded the direct-deletion policy decision in `DECISIONS.md` and `RISKS.md`.
+- Added persisted `record.toml` metadata for every new backup so restore can recover source path, checksum, and creation time safely.
+- Added backup listing and restore helpers that load metadata, verify checksum integrity, and rewrite the original history file atomically.
+- Added the `histkit restore` command to list available backups or restore one by ID, with audit-log entries for successful restores.
 
 Files changed:
 
-- DECISIONS.md
-- RISKS.md
 - SESSION.md
-- SESSIONS/029-clean-apply.md
-- internal/cli/clean.go
-- internal/cli/clean_test.go
+- SESSIONS/030-restore-command.md
+- internal/backup/create.go
+- internal/backup/store.go
+- internal/backup/store_test.go
+- internal/cli/restore.go
+- internal/cli/restore_test.go
 - internal/cli/root.go
 - internal/cli/root_test.go
-- internal/sanitize/apply.go
-- internal/sanitize/apply_test.go
 
 Files read:
 
 - SESSION.md
 - ROADMAP.md
-- SKILLS/backup-restore.md
-- SKILLS/testing.md
 - README.md
-- docs/HUMAN_GATES.md
 - docs/histkit-implementation-plan.md
-- docs/OPEN_QUESTIONS.md
-- DECISIONS.md
-- RISKS.md
-- cmd/histkit/main.go
-- internal/audit/model.go
 - internal/backup/create.go
-- internal/backup/model.go
-- internal/cli/pick.go
-- internal/cli/root.go
+- internal/backup/create_test.go
+- internal/backup/atomic_test.go
 - internal/cli/root_test.go
-- internal/cli/scan.go
-- internal/cli/scan_test.go
-- internal/cli/stats.go
-- internal/config/config.go
-- internal/history/bash.go
-- internal/history/detect.go
-- internal/history/model.go
-- internal/history/zsh.go
-- internal/history/zsh_test.go
-- internal/sanitize/matcher.go
-- internal/sanitize/model.go
-- internal/sanitize/preview.go
-- internal/sanitize/preview_test.go
-- internal/sanitize/quarantine.go
-- internal/sanitize/redact.go
-- internal/sanitize/secrets.go
-- internal/sanitize/secrets_test.go
-- internal/sanitize/trivial.go
-- internal/sanitize/trivial_test.go
+- internal/audit/model_test.go
+- internal/audit/log_test.go
+- internal/cli/clean_test.go
 
 Tests added:
 
-- `TestApplyToSourceBashRewritesDeleteRedactAndQuarantine`
-- `TestApplyToSourceZshExtendedHistoryPreservesMetadata`
-- `TestApplyToSourcePreservesUnparsedZshLines`
-- `TestApplyToSourceRejectsUnsupportedShell`
-- `TestExecuteCleanDryRunOutputsPreviewWithoutMutatingHistory`
-- `TestExecuteCleanApplyRewritesHistoryCreatesBackupAndAudit`
-- `TestExecuteCleanApplyRequiresBackupHistory`
+- `TestWriteRecordAndLoadRecord`
+- `TestListRecordsSortsNewestFirst`
+- `TestRestoreRewritesTargetFromBackup`
+- `TestRestoreRejectsChecksumMismatch`
+- `TestExecuteRestoreListsBackupsWhenNoIDProvided`
+- `TestExecuteRestoreRestoresSpecificBackupAndAudits`
+- `TestExecuteRestoreNoBackups`
 
 Tests run:
 
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/sanitize ./internal/cli`
+- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/backup ./internal/cli`
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
 
 Known failures:
@@ -163,80 +130,47 @@ Known failures:
 
 Decisions made:
 
-- `delete` rules remove matching history lines during `clean --apply`.
-- Apply mode preserves unmatched raw lines and malformed or unparsed Zsh lines rather than dropping them.
-- Final per-entry action precedence is conservative: quarantine, then redact, then delete.
+- Persist backup metadata as `record.toml` under each backup ID directory.
+- Use metadata-driven restore instead of inferring source paths from backup filenames alone.
+- Log restore operations through the existing audit log using a narrow `restore` rule marker and `apply=false`.
 
 Commands run:
 
 - `git status --short --branch`
-- `sed -n '1,220p' SESSION.md`
+- `sed -n '1,240p' SESSION.md`
 - `sed -n '1,220p' ROADMAP.md`
-- `rg -n "clean|apply|backup|audit|sanitize|rewrite" internal cmd -g '!**/*_test.go'`
-- `sed -n '1,240p' SKILLS/backup-restore.md`
-- `sed -n '1,220p' SKILLS/testing.md`
-- `sed -n '240,340p' docs/histkit-implementation-plan.md`
-- `sed -n '1,260p' internal/sanitize/preview.go`
-- `sed -n '1,260p' internal/sanitize/model.go`
-- `rg -n "clean --dry-run|clean|apply" cmd internal README.md docs -g '!**/*_test.go'`
-- `rg --files cmd internal | rg 'clean|history|scan|config|audit|backup'`
-- `sed -n '1,260p' cmd/histkit/main.go`
-- `sed -n '1,260p' internal/history/model.go`
-- `sed -n '1,260p' internal/config/config.go`
-- `sed -n '700,760p' docs/histkit-implementation-plan.md`
-- `sed -n '1,260p' internal/cli/scan.go`
-- `sed -n '1,260p' internal/cli/scan_test.go`
-- `rg -n "Execute\\(|cobra|flag|scan|clean" internal/cli -S`
-- `ls -la internal/cli`
-- `sed -n '1,220p' internal/cli/root.go`
-- `sed -n '1,260p' internal/history/bash.go`
-- `sed -n '1,260p' internal/history/zsh.go`
-- `sed -n '1,260p' internal/history/detect.go`
-- `sed -n '1,260p' internal/audit/model.go`
-- `sed -n '1,240p' internal/backup/create.go`
-- `sed -n '150,175p' docs/HUMAN_GATES.md`
-- `sed -n '80,120p' README.md`
-- `sed -n '464,490p' README.md`
-- `sed -n '1,260p' internal/sanitize/quarantine.go`
-- `sed -n '1,260p' internal/sanitize/matcher.go`
-- `sed -n '1,260p' internal/backup/model.go`
+- `rg -n "restore|backup|audit|clean apply|RewriteAtomic|BackupID|backups" internal cmd README.md docs -g '!**/*_test.go'`
+- `git checkout -b 030-restore-command`
+- `sed -n '150,175p' README.md`
+- `sed -n '236,245p' docs/histkit-implementation-plan.md`
+- `sed -n '689,706p' docs/histkit-implementation-plan.md`
+- `sed -n '1,220p' internal/backup/create_test.go`
+- `sed -n '1,220p' internal/backup/atomic_test.go`
 - `sed -n '1,240p' internal/cli/root_test.go`
-- `sed -n '1,260p' internal/sanitize/secrets.go`
-- `sed -n '1,260p' internal/sanitize/trivial.go`
-- `rg -n "ActionDelete|ActionQuarantine|ActionRedact|ActionKeep" internal/sanitize -S`
-- `sed -n '1,260p' docs/HUMAN_GATES.md`
-- `rg -n "Q001|HUMAN_GATES|delete entries directly|apply action" -S .`
-- `git checkout -b 029-clean-apply`
-- `ls -1`
-- `rg --files . | rg 'DECISIONS|RISKS|OPEN_QUESTIONS|internal/cli|internal/history|internal/sanitize'`
-- `sed -n '1,220p' internal/cli/stats.go`
-- `sed -n '1,260p' internal/cli/pick.go`
-- `sed -n '1,220p' docs/OPEN_QUESTIONS.md`
-- `sed -n '1,260p' internal/sanitize/redact.go`
-- `sed -n '1,260p' internal/sanitize/preview_test.go`
-- `sed -n '1,260p' internal/history/zsh_test.go`
-- `sed -n '1,260p' DECISIONS.md`
-- `sed -n '1,260p' RISKS.md`
-- `rg -n "precedence|multiple matches|quarantine before|redact before|delete" README.md docs internal/sanitize -S`
-- `sed -n '1,260p' internal/sanitize/secrets_test.go`
-- `sed -n '1,260p' internal/sanitize/trivial_test.go`
-- `gofmt -w internal/sanitize/apply.go internal/sanitize/apply_test.go internal/cli/clean.go internal/cli/clean_test.go internal/cli/root.go internal/cli/root_test.go`
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/sanitize ./internal/cli`
-- `gofmt -w internal/sanitize/apply_test.go`
+- `sed -n '1,240p' internal/audit/model_test.go`
+- `sed -n '1,220p' internal/audit/log_test.go`
+- `sed -n '1,220p' internal/cli/clean_test.go`
+- `gofmt -w internal/backup/store.go internal/backup/store_test.go internal/backup/create.go internal/cli/restore.go internal/cli/restore_test.go internal/cli/root.go internal/cli/root_test.go`
+- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/backup ./internal/cli`
+- `gofmt -w internal/backup/store.go`
+- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/backup ./internal/cli`
+- `gofmt -w internal/cli/restore.go`
+- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/backup ./internal/cli`
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
 - `git status --short`
 - `date -u +%Y-%m-%d`
 
 Assumptions made:
 
-- Preserve malformed or otherwise unparsed Zsh lines verbatim during apply instead of rejecting the whole rewrite.
+- Backup metadata persisted from this slice forward is the supported restore source of truth; older metadata-less backups are outside this slice.
+- A restore audit entry can reuse the existing audit-record shape with `RuleNames=["restore"]` and zero counts.
 
 Risks introduced or reduced:
 
-- Reduced: `clean --apply` now has backup, atomic rewrite, and audit coverage for built-in cleanup behavior.
-- Reduced: malformed or unmatched lines are preserved verbatim instead of being lost during rewrite.
-- Ongoing: later restore and failure-recovery slices still need to complete end-to-end recovery behavior.
+- Reduced: restore now validates backup checksum before replacing the target file.
+- Reduced: restore now uses persisted source-path metadata instead of guessing from backup filenames.
+- Ongoing: legacy backups without metadata are not yet surfaced through the restore command.
 
 Next recommended session:
 
-- `030-restore-command`
+- `031-failure-recovery-tests`

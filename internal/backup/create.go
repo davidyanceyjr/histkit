@@ -52,6 +52,10 @@ func Create(sourceFile, backupDir string, createdAt time.Time, sequence int) (Re
 		_ = os.Remove(record.BackupPath)
 		return Record{}, fmt.Errorf("create backup: checksum mismatch after copy")
 	}
+	if err := WriteRecord(record, backupDir); err != nil {
+		_ = os.Remove(record.BackupPath)
+		return Record{}, fmt.Errorf("create backup: %w", err)
+	}
 
 	return record, nil
 }

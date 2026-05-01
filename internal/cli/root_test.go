@@ -26,6 +26,9 @@ func TestExecuteHelp(t *testing.T) {
 	if !strings.Contains(stdout.String(), "clean") {
 		t.Fatalf("expected clean command in help output, got %q", stdout.String())
 	}
+	if !strings.Contains(stdout.String(), "restore") {
+		t.Fatalf("expected restore command in help output, got %q", stdout.String())
+	}
 	if !strings.Contains(stdout.String(), "pick") {
 		t.Fatalf("expected pick command in help output, got %q", stdout.String())
 	}
