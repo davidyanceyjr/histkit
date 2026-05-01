@@ -141,3 +141,58 @@ func TestExecuteCleanApplyRequiresBackupHistory(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestExecuteCleanApplyReturnsErrorButKeepsRewriteWhenAuditAppendFails(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	historyPath := filepath.Join(home, ".bash_history")
+	original := "pwd\nmysql --password hunter2\necho hi\n"
+	if err := os.WriteFile(historyPath, []byte(original), 0o600); err != nil {
+		t.Fatalf("WriteFile(history) returned error: %v", err)
+	}
+
+	paths, err := config.DefaultPaths(home)
+	if err != nil {
+		t.Fatalf("DefaultPaths returned error: %v", err)
+	}
+	if err := os.MkdirAll(paths.StateDir, 0o700); err != nil {
+		t.Fatalf("MkdirAll(state dir) returned error: %v", err)
+	}
+	if err := os.Mkdir(paths.AuditLog, 0o700); err != nil {
+		t.Fatalf("Mkdir(audit log blocker) returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	err = Execute([]string{"clean", "--apply"}, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("expected audit append failure")
+	}
+	if !strings.Contains(err.Error(), "append audit log") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	historyContent, err := os.ReadFile(historyPath)
+	if err != nil {
+		t.Fatalf("ReadFile(history) returned error: %v", err)
+	}
+	if got, want := string(historyContent), "mysql [REDACTED]\necho hi\n"; got != want {
+		t.Fatalf("rewritten history = %q, want %q", got, want)
+	}
+
+	backupMatches, err := filepath.Glob(filepath.Join(paths.StateDir, "backups", "*", ".bash_history"))
+	if err != nil {
+		t.Fatalf("Glob returned error: %v", err)
+	}
+	if len(backupMatches) != 1 {
+		t.Fatalf("backup match count = %d, want 1", len(backupMatches))
+	}
+	backupContent, err := os.ReadFile(backupMatches[0])
+	if err != nil {
+		t.Fatalf("ReadFile(backup) returned error: %v", err)
+	}
+	if string(backupContent) != original {
+		t.Fatalf("backup content = %q, want %q", string(backupContent), original)
+	}
+}

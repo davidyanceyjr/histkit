@@ -124,4 +124,12 @@ func TestRestoreRejectsChecksumMismatch(t *testing.T) {
 	if !strings.Contains(err.Error(), "checksum mismatch") {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
+	data, readErr := os.ReadFile(sourcePath)
+	if readErr != nil {
+		t.Fatalf("ReadFile(source) returned error: %v", readErr)
+	}
+	if string(data) != "current\n" {
+		t.Fatalf("source contents changed on failed restore: got %q want %q", string(data), "current\n")
+	}
 }

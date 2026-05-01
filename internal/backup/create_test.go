@@ -112,6 +112,36 @@ func TestCreateRejectsExistingBackupPath(t *testing.T) {
 	}
 }
 
+func TestCreateRemovesBackupFileWhenRecordWriteFails(t *testing.T) {
+	tempDir := t.TempDir()
+	sourcePath := filepath.Join(tempDir, "history")
+	if err := os.WriteFile(sourcePath, []byte("pwd\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	backupDir := filepath.Join(tempDir, "backups")
+	createdAt := time.Date(2026, 5, 1, 16, 0, 0, 0, time.UTC)
+	record, err := BuildRecord(sourcePath, backupDir, "sha256:placeholder", createdAt, 1)
+	if err != nil {
+		t.Fatalf("BuildRecord returned error: %v", err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(record.BackupPath), 0o700); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	recordPath := RecordPath(record.ID, backupDir)
+	if err := os.WriteFile(recordPath, []byte("block\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile(record path) returned error: %v", err)
+	}
+
+	if _, err := Create(sourcePath, backupDir, createdAt, 1); err == nil {
+		t.Fatal("Create returned nil error when record write failed")
+	}
+	if _, err := os.Stat(record.BackupPath); !os.IsNotExist(err) {
+		t.Fatalf("backup file still exists after record write failure: stat err=%v", err)
+	}
+}
+
 func TestChecksumFile(t *testing.T) {
 	tempDir := t.TempDir()
 	path := filepath.Join(tempDir, "sample")
