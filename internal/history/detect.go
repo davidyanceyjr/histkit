@@ -20,10 +20,21 @@ func CandidateSources(home string) ([]Source, error) {
 		return nil, fmt.Errorf("candidate sources: home directory is required")
 	}
 
-	return []Source{
+	sources := []Source{
 		{Shell: ShellBash, Path: filepath.Join(home, ".bash_history")},
 		{Shell: ShellZsh, Path: filepath.Join(home, ".zsh_history")},
-	}, nil
+	}
+
+	if shell, path, ok := detectHistfileOverride(home); ok {
+		for i := range sources {
+			if sources[i].Shell == shell {
+				sources[i].Path = path
+				break
+			}
+		}
+	}
+
+	return sources, nil
 }
 
 func DetectSources(home, shell string) ([]Source, error) {
@@ -72,5 +83,37 @@ func ParserForShell(shell string) (Parser, error) {
 		return ParseZsh, nil
 	default:
 		return nil, fmt.Errorf("unsupported shell %q", shell)
+	}
+}
+
+func detectHistfileOverride(home string) (string, string, bool) {
+	histfile := strings.TrimSpace(os.Getenv("HISTFILE"))
+	if histfile == "" {
+		return "", "", false
+	}
+
+	shell := filepath.Base(strings.TrimSpace(os.Getenv("SHELL")))
+	switch shell {
+	case ShellBash, ShellZsh:
+	default:
+		return "", "", false
+	}
+
+	path, err := expandHistoryPath(histfile, home)
+	if err != nil {
+		return "", "", false
+	}
+
+	return shell, path, true
+}
+
+func expandHistoryPath(path, home string) (string, error) {
+	switch {
+	case path == "~":
+		return home, nil
+	case strings.HasPrefix(path, "~/"):
+		return filepath.Join(home, path[2:]), nil
+	default:
+		return path, nil
 	}
 }
