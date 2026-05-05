@@ -107,3 +107,31 @@ func TestExecuteDoctorRejectsMissingExplicitConfig(t *testing.T) {
 		t.Fatalf("expected explicit config failure in doctor output, got %q", stdout.String())
 	}
 }
+
+func TestExecuteDoctorDetectsHistfileOverride(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("SHELL", "/bin/bash")
+	t.Setenv("PATH", "")
+
+	histfilePath := filepath.Join(home, "history", "bash.hist")
+	if err := os.MkdirAll(filepath.Dir(histfilePath), 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(histfilePath, []byte("pwd\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+	t.Setenv("HISTFILE", histfilePath)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	if err := Execute([]string{"doctor"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "history_sources: OK - readable history sources: bash ("+histfilePath+")") {
+		t.Fatalf("expected HISTFILE-backed history source in output, got %q", stdout.String())
+	}
+}

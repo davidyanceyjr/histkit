@@ -23,6 +23,40 @@ func TestCandidateSources(t *testing.T) {
 	}
 }
 
+func TestCandidateSourcesUsesHistfileForActiveBashShell(t *testing.T) {
+	t.Setenv("SHELL", "/bin/bash")
+	t.Setenv("HISTFILE", "~/hist/bash_history")
+
+	sources, err := CandidateSources("/home/tester")
+	if err != nil {
+		t.Fatalf("CandidateSources returned error: %v", err)
+	}
+
+	if got, want := sources[0], (Source{Shell: ShellBash, Path: "/home/tester/hist/bash_history"}); got != want {
+		t.Fatalf("sources[0] = %#v, want %#v", got, want)
+	}
+	if got, want := sources[1], (Source{Shell: ShellZsh, Path: "/home/tester/.zsh_history"}); got != want {
+		t.Fatalf("sources[1] = %#v, want %#v", got, want)
+	}
+}
+
+func TestCandidateSourcesIgnoresHistfileForUnsupportedShell(t *testing.T) {
+	t.Setenv("SHELL", "/bin/fish")
+	t.Setenv("HISTFILE", "/tmp/fish_history")
+
+	sources, err := CandidateSources("/home/tester")
+	if err != nil {
+		t.Fatalf("CandidateSources returned error: %v", err)
+	}
+
+	if got, want := sources[0], (Source{Shell: ShellBash, Path: "/home/tester/.bash_history"}); got != want {
+		t.Fatalf("sources[0] = %#v, want %#v", got, want)
+	}
+	if got, want := sources[1], (Source{Shell: ShellZsh, Path: "/home/tester/.zsh_history"}); got != want {
+		t.Fatalf("sources[1] = %#v, want %#v", got, want)
+	}
+}
+
 func TestCandidateSourcesRequiresHome(t *testing.T) {
 	if _, err := CandidateSources(""); err == nil {
 		t.Fatal("CandidateSources returned nil error for empty home")
@@ -74,6 +108,32 @@ func TestDetectSourcesFiltersByShell(t *testing.T) {
 		t.Fatalf("len(sources) = %d, want 1", len(sources))
 	}
 	if got, want := sources[0], (Source{Shell: ShellZsh, Path: zshPath}); got != want {
+		t.Fatalf("sources[0] = %#v, want %#v", got, want)
+	}
+}
+
+func TestDetectSourcesFindsHistfileOverride(t *testing.T) {
+	home := t.TempDir()
+	histfilePath := filepath.Join(home, "history", "bash.hist")
+	if err := os.MkdirAll(filepath.Dir(histfilePath), 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(histfilePath, []byte("git status\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	t.Setenv("SHELL", "/bin/bash")
+	t.Setenv("HISTFILE", histfilePath)
+
+	sources, err := DetectSources(home, "")
+	if err != nil {
+		t.Fatalf("DetectSources returned error: %v", err)
+	}
+
+	if len(sources) != 1 {
+		t.Fatalf("len(sources) = %d, want 1", len(sources))
+	}
+	if got, want := sources[0], (Source{Shell: ShellBash, Path: histfilePath}); got != want {
 		t.Fatalf("sources[0] = %#v, want %#v", got, want)
 	}
 }
