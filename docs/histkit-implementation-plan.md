@@ -748,7 +748,7 @@ WantedBy=timers.target
 
 ```ini
 [Unit]
-Description=Scan and index shell history
+Description=Scan and index shell history with histkit
 
 [Service]
 Type=oneshot
