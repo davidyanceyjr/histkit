@@ -84,9 +84,11 @@ Summary:
 - Replaced the broad inline password regex with a structured heuristic that still catches `--password`, `--passwd`, and MySQL-style `-psecret` forms without flagging unrelated `-p` options.
 - Kept password-bearing commands reviewable by redacting only the secret value instead of collapsing the whole argument.
 - Narrowed high-entropy matching to sensitive key/value contexts so package names, filesystem paths, and device labels are not quarantined by the generic entropy rule.
+- NOTE: `ROADMAP.md` is intentionally included with this slice to record `038` and `039` under Milestone 3 and to codify the new sanitizer false-positive exit criterion.
 
 Files changed:
 
+- ROADMAP.md
 - SESSION.md
 - SESSIONS/038-inline-password-flag-hardening.md
 - internal/cli/clean_test.go
@@ -145,6 +147,7 @@ Commands run:
 - `sed -n '1,220p' SKILLS/sanitizer.md`
 - `sed -n '1,220p' SKILLS/testing.md`
 - `sed -n '1,240p' ROADMAP.md`
+- `git diff -- ROADMAP.md`
 - `rg -n "password|passwd|entropy|token|secret|credential|bearer|apikey|api_key|inline" internal/sanitize internal -g '!**/*_test.go'`
 - `sed -n '1,260p' internal/sanitize/secrets.go`
 - `sed -n '1,260p' internal/sanitize/matcher.go`
@@ -174,6 +177,7 @@ Risks introduced or reduced:
 
 - Reduced: routine `-p` flags and mixed-case path or package tokens are much less likely to trigger false secret matches.
 - Reduced: preview and rewritten output now preserve password flag context instead of hiding the entire argument shape.
+- Reduced: the roadmap now explicitly tracks this sanitizer hardening work and its false-positive guard expectation.
 - Remaining: quoted or shell-escaped password values are still handled by the current field-based heuristic, not shell-specific parsing.
 
 Next recommended session:

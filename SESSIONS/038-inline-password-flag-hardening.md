@@ -6,6 +6,7 @@ Harden inline password detection and reduce false positives from high-entropy to
 
 ## Completed
 
+- Updated `ROADMAP.md` to explicitly place slices `038` and `039` in Milestone 3 and to record the sanitizer false-positive guard expectation in the milestone exit criteria.
 - Replaced the built-in inline password regex with a heuristic detector that matches `--password`, `--passwd`, and MySQL-family `-psecret` forms without treating arbitrary `-p` flags as secrets.
 - Updated secret redaction so password-bearing commands keep their flag structure while masking only the sensitive value.
 - Narrowed the high-entropy heuristic to sensitive key/value contexts, which prevents routine package names, filesystem paths, and device labels from being quarantined.
@@ -14,6 +15,7 @@ Harden inline password detection and reduce false positives from high-entropy to
 
 ## Files changed
 
+- ROADMAP.md
 - SESSION.md
 - SESSIONS/038-inline-password-flag-hardening.md
 - internal/cli/clean_test.go
@@ -68,6 +70,7 @@ git status --short --branch
 sed -n '1,220p' SKILLS/sanitizer.md
 sed -n '1,220p' SKILLS/testing.md
 sed -n '1,240p' ROADMAP.md
+git diff -- ROADMAP.md
 rg -n "password|passwd|entropy|token|secret|credential|bearer|apikey|api_key|inline" internal/sanitize internal -g '!**/*_test.go'
 sed -n '1,260p' internal/sanitize/secrets.go
 sed -n '1,260p' internal/sanitize/matcher.go
@@ -110,6 +113,7 @@ git status --short
 - Routine admin commands using `-p` no longer look like inline password leaks by default.
 - Package-name, path, and device-label commands are much less likely to be quarantined as high-entropy secrets.
 - Redacted output is easier to review because the command shape remains intact.
+- The roadmap now reflects this sanitizer hardening work and its false-positive guard expectation explicitly.
 
 ## Next recommended session
 

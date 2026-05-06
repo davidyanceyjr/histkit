@@ -61,12 +61,15 @@ Goal: `histkit clean --dry-run`.
 5. `022-trivial-command-rules`
 6. `023-dry-run-preview`
 7. `024-quarantine-records`
+8. `038-inline-password-flag-hardening`
+9. `039-high-entropy-token-false-positive-guards`
 
 ### Exit criteria
 
 - Matched entries show rule, reason, and action.
 - Dry-run performs no mutation.
 - Quarantine records are recoverable.
+- Default secret rules avoid known false positives from common package, path, and device-label commands.
 
 ---
 
