@@ -529,7 +529,7 @@ Because active shells may rewrite history files on exit, in-place cleanup should
 
 A typical user-level timer should default to periodic scans or report generation. Automated cleanup should remain conservative and should not imply unattended destructive apply mode by default.
 
-Example timer:
+The repository ships matching `systemd --user` timer and service templates for scheduled scanning:
 
 ```ini
 [Unit]
@@ -544,18 +544,16 @@ Persistent=true
 WantedBy=timers.target
 ```
 
-The repository ships a matching one-shot service template at `contrib/histkit-scan.service` for scheduled scanning:
-
 ```ini
 [Unit]
-Description=Scan and index shell history
+Description=Scan and index shell history with histkit
 
 [Service]
 Type=oneshot
 ExecStart=%h/.local/bin/histkit scan --config %h/.config/histkit/config.toml
 ```
 
-Install and enable as the target user, not as root, unless your deployment specifically requires otherwise.
+Install `contrib/histkit-scan.timer` and `contrib/histkit-scan.service` as the target user, not as root, unless your deployment specifically requires otherwise.
 
 ## Dependencies
 

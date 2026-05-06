@@ -2,28 +2,28 @@
 
 ## Current session
 
-ID: `032-systemd-user-service`
+ID: `033-systemd-user-timer`
 
 Status: completed
 
 ## Objective
 
-Add the initial optional `systemd --user` service template for scheduled `histkit scan` runs and align the documentation with the scan-only automation contract.
+Add the initial optional `systemd --user` timer template for scheduled `histkit scan` runs and align the documentation with the shipped timer-and-service automation contract.
 
 ## Scope
 
 Implement:
 
-- a contributed `systemd --user` oneshot service unit under `contrib/`
-- deterministic tests that validate the shipped unit content without requiring a live `systemd` runtime
-- documentation updates that reference scan-oriented automation artifacts consistently
+- a contributed `systemd --user` timer unit under `contrib/`
+- deterministic tests that validate the shipped timer content without requiring a live `systemd` runtime
+- documentation updates that reference the shipped timer-and-service template pair consistently
 
 ## Out of scope
 
-- timer unit implementation
 - `doctor` systemd checks
 - automation for `clean --apply`
 - installer or enablement commands for user units
+- changes to the scan service command itself
 
 ## Relevant skills
 
@@ -32,14 +32,14 @@ Implement:
 
 ## Acceptance criteria
 
-- the repository ships a `systemd --user` service template for `histkit scan`
-- the unit content is covered by automated tests that do not require `systemd`
-- docs and examples describe scan-oriented automation rather than cleanup-by-default
+- the repository ships a `systemd --user` timer template for scheduled `histkit scan` runs
+- the timer content is covered by automated tests that do not require `systemd`
+- docs and examples describe the shipped timer-and-service template pair consistently
 - `go test ./...` passes
 
 ## Current repo state
 
-Milestone 4 is complete and the roadmap recommends `032-systemd-user-service` next. The repository now ships a contributed scan service template and the automation docs consistently describe scheduled scans rather than cleanup-by-default behavior.
+Milestone 5 remains in progress. The repository now ships both contributed scan automation templates under `contrib/`, and the docs describe the timer and service pair consistently. The next roadmap slice is `034-doctor-systemd-checks`.
 
 ## Decisions already made
 
@@ -53,8 +53,8 @@ Milestone 4 is complete and the roadmap recommends `032-systemd-user-service` ne
 
 ## Risks to watch
 
-- Shipping a service template that diverges from the documented automation contract will confuse users.
-- Overreaching into timer or doctor behavior in this slice would blur the milestone boundaries.
+- Shipping timer and service examples that diverge from the contributed artifacts will confuse users.
+- Overreaching into `doctor` checks in this slice would blur the milestone boundary with `034`.
 
 ## Open questions
 
@@ -80,16 +80,16 @@ No questions answered this session.
 
 Summary:
 
-- Added `contrib/histkit-scan.service` as the initial optional `systemd --user` oneshot template for scheduled `histkit scan` runs.
-- Added a deterministic repository test that locks the shipped unit content without requiring a live `systemd` runtime.
-- Updated automation docs and example filenames to consistently describe scan-oriented scheduling rather than cleanup-by-default behavior.
+- Added `contrib/histkit-scan.timer` as the initial optional `systemd --user` timer template for scheduled `histkit scan` runs.
+- Extended deterministic repository tests to lock the shipped timer content alongside the existing service template.
+- Updated automation docs so they describe the shipped timer-and-service pair consistently.
 
 Files changed:
 
 - README.md
 - SESSION.md
-- SESSIONS/032-systemd-user-service.md
-- contrib/histkit-scan.service
+- SESSIONS/033-systemd-user-timer.md
+- contrib/histkit-scan.timer
 - contrib/systemd_units_test.go
 - docs/histkit-implementation-plan.md
 
@@ -102,17 +102,13 @@ Files read:
 - SKILLS/testing.md
 - README.md
 - docs/histkit-implementation-plan.md
-- DECISIONS.md
-- SESSIONS/031-failure-recovery-tests.md
-- contrib/wrappers_test.go
-- contrib/histkit.bash
-- contrib/histkit.zsh
-- internal/doctor/checks.go
-- internal/config/config.go
+- contrib/systemd_units_test.go
+- contrib/histkit-scan.service
+- SESSIONS/032-systemd-user-service.md
 
 Tests added:
 
-- exact-content coverage for `contrib/histkit-scan.service`
+- exact-content coverage for `contrib/histkit-scan.timer`
 
 Tests run:
 
@@ -125,57 +121,35 @@ Known failures:
 
 Decisions made:
 
-- Keep the initial contributed unit as a scan-only `systemd --user` service template under `contrib/`.
-- Keep `doctor` and timer work deferred to roadmap slices `034` and `033` respectively.
-- Keep the explicit config path in the service template to match the existing documented contract for automation examples.
+- Ship the timer as a contributed `systemd --user` template under `contrib/` with the interval contract from `SKILLS/systemd-user.md`.
+- Keep timer automation scan-only by pairing it with the existing `histkit-scan.service` template.
+- Keep `doctor` integration deferred to roadmap slice `034`.
 
 Commands run:
 
-- `pwd`
-- `rg --files -g 'SESSION.md' -g 'ROADMAP.md' -g 'SKILLS/**' -g 'AGENTS.md'`
-- `git status --short --branch`
-- `sed -n '1,240p' SESSION.md`
-- `sed -n '1,260p' ROADMAP.md`
-- `sed -n '1,240p' SKILLS/systemd-user.md`
-- `rg -n "systemd|timer|service|doctor|scan" .`
-- `rg --files SESSIONS docs cmd internal | rg 'systemd|doctor|scan|config|paths'`
-- `sed -n '1,240p' internal/doctor/checks.go`
+- `git branch --all --list '*033*'`
+- `git remote -v`
+- `git log --oneline -5`
+- `git checkout -b 033-systemd-user-timer`
+- `sed -n '1,220p' contrib/systemd_units_test.go`
 - `sed -n '520,575p' README.md`
 - `sed -n '728,766p' docs/histkit-implementation-plan.md`
-- `sed -n '1,220p' internal/config/config.go`
-- `ls -1`
-- `find . -maxdepth 2 -type d | sort`
-- `sed -n '1,220p' SESSIONS/031-failure-recovery-tests.md`
-- `git branch --all --list '*032*'`
-- `find contrib -maxdepth 3 -type f | sort`
-- `git log --oneline -5`
-- `git checkout -b 032-systemd-user-service`
-- `sed -n '1,220p' contrib/wrappers_test.go`
-- `sed -n '1,220p' contrib/histkit.bash`
-- `sed -n '1,220p' contrib/histkit.zsh`
-- `sed -n '1,120p' DECISIONS.md`
-- `rg -n "histkit-clean|cleanup periodically|Run histkit cleanup periodically|histkit scan --config|systemd integration|histkit.*service|histkit.*timer" README.md docs/histkit-implementation-plan.md`
-- `sed -n '1,220p' SKILLS/testing.md`
-- `sed -n '430,570p' README.md`
-- `sed -n '140,180p' docs/histkit-implementation-plan.md`
+- `sed -n '1,260p' SESSION.md`
 - `gofmt -w contrib/systemd_units_test.go`
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./contrib`
-- `command -v systemd-analyze >/dev/null 2>&1 && systemd-analyze verify contrib/histkit-scan.service || true`
+- `command -v systemd-analyze >/dev/null 2>&1 && systemd-analyze verify contrib/histkit-scan.service contrib/histkit-scan.timer || true`
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
-- `git status --short`
-- `git diff -- README.md docs/histkit-implementation-plan.md contrib/histkit-scan.service contrib/systemd_units_test.go SESSION.md`
-- `git remote -v`
 
 Assumptions made:
 
-- The existing automation examples establish a sufficient contract for the initial service template, so no human decision is required before implementing slice `032`.
+- The timer interval contract already documented in `SKILLS/systemd-user.md` is sufficient for this slice, so no human decision is required before shipping the contributed timer template.
 
 Risks introduced or reduced:
 
-- Reduced: automation docs and artifact names now consistently describe scheduled scans instead of cleanup-by-default behavior.
-- Reduced: the repository now ships a tested scan service template instead of only prose examples.
-- Remaining: the explicit `--config` path in the service template assumes users install automation after creating a config file at the documented location.
+- Reduced: the repository now ships the timer artifact that the docs already referenced, eliminating drift between prose and contributed automation files.
+- Reduced: timer content is now covered by deterministic tests instead of only inline documentation.
+- Remaining: both templates still assume `histkit` is installed at `%h/.local/bin/histkit` and that the documented config file exists before the user enables automation.
 
 Next recommended session:
 
-- `033-systemd-user-timer`
+- `034-doctor-systemd-checks`
