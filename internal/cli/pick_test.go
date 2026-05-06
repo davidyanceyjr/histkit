@@ -31,6 +31,7 @@ func TestExecutePickHelp(t *testing.T) {
 		"pick reads from the local history index and the snippet store.",
 		"It does not write shell history or expand snippet placeholders on its own.",
 		"--config <path>   load a specific histkit config file before opening the picker",
+		"--debug           print pick progress diagnostics to stderr",
 	)
 }
 
@@ -78,6 +79,42 @@ func TestExecutePickFailsWhenFZFIsMissing(t *testing.T) {
 	if !strings.Contains(err.Error(), "pick: find fzf") {
 		t.Fatalf("Execute error = %q, want fzf lookup failure", err)
 	}
+}
+
+func TestExecutePickDebugWritesStageDiagnosticsToStderr(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	seedPickFixtures(t, home)
+
+	fzfDir := filepath.Join(home, "bin")
+	if err := os.MkdirAll(fzfDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(fzfDir, "fzf"), []byte("#!/bin/sh\nIFS= read -r _\nIFS= read -r line\nprintf '%s\\n' \"$line\"\n"), 0o755); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+	t.Setenv("PATH", fzfDir)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	if err := Execute([]string{"pick", "--debug"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if got, want := stdout.String(), "echo custom\n"; got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+
+	debugOutput := stderr.String()
+	assertHelpContains(t, debugOutput,
+		"pick debug: detect home directory start",
+		"pick debug: open history database start",
+		"pick debug: initialize history schema start",
+		"pick debug: load picker candidates start",
+		"pick debug: candidate summary: history_limit=200 total=",
+		"pick debug: launch fzf start",
+		"pick debug: selected [snippet] candidate",
+	)
 }
 
 func seedPickFixtures(t *testing.T, home string) {
