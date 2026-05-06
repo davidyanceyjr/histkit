@@ -158,8 +158,8 @@ histkit/
 ├── configs/
 │   └── config.example.toml
 ├── contrib/
-│   ├── histkit-clean.service
-│   ├── histkit-clean.timer
+│   ├── histkit-scan.service
+│   ├── histkit-scan.timer
 │   ├── histkit.bash
 │   └── histkit.zsh
 ├── go.mod
@@ -733,7 +733,7 @@ Automation should be done with `systemd --user`.
 
 ```ini
 [Unit]
-Description=Run histkit cleanup periodically
+Description=Run histkit scan periodically
 
 [Timer]
 OnBootSec=5m
