@@ -37,7 +37,8 @@ Completed.
 - `internal/history/bash.go` - added a streaming Bash parser and raised scanner buffer capacity.
 - `internal/history/detect.go` - added stream-parser selection alongside the existing parser API.
 - `internal/history/detect_test.go` - added stream-parser selector tests.
-- `internal/history/zsh.go` - added a streaming Zsh parser and raised scanner buffer capacity.
+- `internal/history/zsh.go` - added a streaming Zsh parser and replaced fixed scanner limits with buffered line reads.
+- `internal/history/lines.go` - added shared line-reading helpers for unbounded history-line handling.
 - `SESSION.md` - updated the active working state for this session.
 - `SESSIONS/041-scan-large-history-streaming.md` - recorded this session artifact.
 
@@ -56,7 +57,7 @@ Completed.
 ## Known failures
 
 - No repository test failures.
-- Single history lines larger than 1 MiB still exceed the parser ceiling.
+- No known parser size ceiling remains from fixed scanner token limits.
 
 ## Commands run
 
@@ -88,11 +89,11 @@ Completed.
 
 - Preserve the existing slice-returning parsers for compatibility and add streaming variants for scan-specific performance work.
 - Keep batching inside `scan` so the index writer contract stays stable for the rest of the codebase.
-- Set the scanner maximum token size to 1 MiB as a bounded fix for real-world long commands.
+- Replace `bufio.Scanner` with a buffered line reader so very large single-line history entries are accepted without a fixed token ceiling.
 
 ## Assumptions made
 
-- `NON-BLOCKING`: A 1 MiB line ceiling is safe for this slice because it removes the immediate bottleneck without introducing unbounded memory behavior, and changing the ceiling later is low-cost.
+- None.
 
 ## Unresolved questions
 
@@ -102,8 +103,8 @@ Completed.
 ## Risks introduced or reduced
 
 - Reduced: large history files no longer require full-file entry accumulation before index writes begin.
-- Reduced: long pasted commands no longer fail at the default scanner buffer limit.
-- Remaining: very large single-line history entries above 1 MiB still fail.
+- Reduced: very large single-line history entries no longer fail at a fixed scanner token limit.
+- Remaining: manual testing should still confirm acceptable latency on the original large history file.
 
 ## Next slice recommendation
 

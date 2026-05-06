@@ -219,7 +219,7 @@ func TestExecuteScanAcceptsLongHistoryLine(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 
-	longCommand := strings.Repeat("x", 128*1024)
+	longCommand := strings.Repeat("x", 2*1024*1024)
 	historyPath := filepath.Join(home, ".bash_history")
 	if err := os.WriteFile(historyPath, []byte(longCommand+"\n"), 0o600); err != nil {
 		t.Fatalf("WriteFile returned error: %v", err)

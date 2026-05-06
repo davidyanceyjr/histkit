@@ -1,7 +1,6 @@
 package history
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strconv"
@@ -38,17 +37,10 @@ func StreamZsh(sourceFile string, r io.Reader, onEntry func(HistoryEntry) error,
 		return fmt.Errorf("zsh parser reader is required")
 	}
 
-	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-	lineNumber := 0
-
-	for scanner.Scan() {
-		lineNumber++
-		rawLine := scanner.Text()
-
+	if err := readHistoryLines(r, func(rawLine string, lineNumber int) error {
 		switch {
 		case rawLine == "":
-			continue
+			return nil
 		case strings.TrimSpace(rawLine) == "":
 			if err := onWarning(ParseWarning{
 				Shell:      ShellZsh,
@@ -59,17 +51,19 @@ func StreamZsh(sourceFile string, r io.Reader, onEntry func(HistoryEntry) error,
 			}); err != nil {
 				return err
 			}
+			return nil
 		case strings.HasPrefix(rawLine, ": "):
 			entry, warning := parseZshExtendedLine(sourceFile, lineNumber, rawLine)
 			if warning != nil {
 				if err := onWarning(*warning); err != nil {
 					return err
 				}
-				continue
+				return nil
 			}
 			if err := onEntry(entry); err != nil {
 				return err
 			}
+			return nil
 		default:
 			if err := onEntry(HistoryEntry{
 				Shell:      ShellZsh,
@@ -79,11 +73,10 @@ func StreamZsh(sourceFile string, r io.Reader, onEntry func(HistoryEntry) error,
 			}); err != nil {
 				return err
 			}
+			return nil
 		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("read Zsh history from %q: %w", sourceFile, err)
+	}); err != nil {
+		return wrapHistoryReadError("Zsh", sourceFile, err)
 	}
 
 	return nil

@@ -1,7 +1,6 @@
 package history
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strings"
@@ -36,17 +35,10 @@ func StreamBash(sourceFile string, r io.Reader, onEntry func(HistoryEntry) error
 		return fmt.Errorf("bash parser reader is required")
 	}
 
-	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-	lineNumber := 0
-
-	for scanner.Scan() {
-		lineNumber++
-		rawLine := scanner.Text()
-
+	if err := readHistoryLines(r, func(rawLine string, lineNumber int) error {
 		switch {
 		case rawLine == "":
-			continue
+			return nil
 		case strings.TrimSpace(rawLine) == "":
 			if err := onWarning(ParseWarning{
 				Shell:      ShellBash,
@@ -57,7 +49,7 @@ func StreamBash(sourceFile string, r io.Reader, onEntry func(HistoryEntry) error
 			}); err != nil {
 				return err
 			}
-			continue
+			return nil
 		default:
 			if err := onEntry(HistoryEntry{
 				Shell:      ShellBash,
@@ -67,11 +59,10 @@ func StreamBash(sourceFile string, r io.Reader, onEntry func(HistoryEntry) error
 			}); err != nil {
 				return err
 			}
+			return nil
 		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("read Bash history from %q: %w", sourceFile, err)
+	}); err != nil {
+		return wrapHistoryReadError("Bash", sourceFile, err)
 	}
 
 	return nil
