@@ -65,6 +65,32 @@ func TestRedactCommand(t *testing.T) {
 			want: "curl [REDACTED]user[REDACTED]secret[REDACTED]example.com/path",
 		},
 		{
+			name:    "inline password flag redaction",
+			command: "mysql --password hunter2",
+			rule: Rule{
+				Name:       "inline-password-flag",
+				Type:       RuleHeuristic,
+				Detector:   "inline_password_flag",
+				Action:     ActionRedact,
+				Confidence: ConfidenceHigh,
+				Reason:     "Mask inline password values",
+			},
+			want: "mysql --password [REDACTED]",
+		},
+		{
+			name:    "mysql short password flag redaction",
+			command: "mysql -phunter2",
+			rule: Rule{
+				Name:       "inline-password-flag",
+				Type:       RuleHeuristic,
+				Detector:   "inline_password_flag",
+				Action:     ActionRedact,
+				Confidence: ConfidenceHigh,
+				Reason:     "Mask inline password values",
+			},
+			want: "mysql -p[REDACTED]",
+		},
+		{
 			name:    "high entropy token redaction",
 			command: "export TOKEN=AbcdefGhijklmnopQRST12uvwxYZ34",
 			rule: Rule{
@@ -76,6 +102,19 @@ func TestRedactCommand(t *testing.T) {
 				Reason:     "Mask likely secret-like tokens",
 			},
 			want: "export TOKEN=[REDACTED]",
+		},
+		{
+			name:    "high entropy token flag redaction",
+			command: "deploy --session-token AbcdefGhijklmnopQRST12uvwxYZ34",
+			rule: Rule{
+				Name:       "high-entropy-token",
+				Type:       RuleHeuristic,
+				Detector:   "high_entropy_token",
+				Action:     ActionRedact,
+				Confidence: ConfidenceMedium,
+				Reason:     "Mask likely secret-like tokens",
+			},
+			want: "deploy --session-token [REDACTED]",
 		},
 		{
 			name:    "large paste blob redaction",

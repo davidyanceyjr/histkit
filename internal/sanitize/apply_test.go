@@ -20,7 +20,7 @@ func TestApplyToSourceBashRewritesDeleteRedactAndQuarantine(t *testing.T) {
 		t.Fatalf("ApplyToSource returned error: %v", err)
 	}
 
-	want := "echo hi\nmysql [REDACTED]\n[QUARANTINED]\n   \n"
+	want := "echo hi\nmysql --password [REDACTED]\n[QUARANTINED]\n   \n"
 	if got := string(report.RewrittenContent); got != want {
 		t.Fatalf("RewrittenContent = %q, want %q", got, want)
 	}

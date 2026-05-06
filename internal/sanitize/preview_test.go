@@ -93,6 +93,7 @@ func TestRenderPreviewTextIncludesRequiredFields(t *testing.T) {
 		"entry: shell=bash source=/home/tester/.bash_history",
 		"original: mysql --password hunter2",
 		"match: rule=inline-password-flag confidence=high action=redact",
+		"mysql --password [REDACTED]",
 		"transformed:",
 		"reason: Redact inline password values",
 	} {

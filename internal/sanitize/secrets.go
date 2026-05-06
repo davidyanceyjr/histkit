@@ -22,8 +22,8 @@ func BuiltinSecretRules() []Rule {
 		},
 		{
 			Name:       "inline-password-flag",
-			Type:       RuleRegex,
-			Pattern:    `(?i)(--password|--passwd)(=| )[^\s]+|\bpassword=[^\s]+|\s-p\s*[^\s]+`,
+			Type:       RuleHeuristic,
+			Detector:   "inline_password_flag",
 			Action:     ActionRedact,
 			Confidence: ConfidenceHigh,
 			Reason:     "Redact inline password values",

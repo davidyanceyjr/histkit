@@ -76,7 +76,7 @@ func TestExecuteCleanApplyRewritesHistoryCreatesBackupAndAudit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile(history) returned error: %v", err)
 	}
-	if got, want := string(historyContent), "mysql [REDACTED]\necho hi\n"; got != want {
+	if got, want := string(historyContent), "mysql --password [REDACTED]\necho hi\n"; got != want {
 		t.Fatalf("rewritten history = %q, want %q", got, want)
 	}
 
@@ -177,7 +177,7 @@ func TestExecuteCleanApplyReturnsErrorButKeepsRewriteWhenAuditAppendFails(t *tes
 	if err != nil {
 		t.Fatalf("ReadFile(history) returned error: %v", err)
 	}
-	if got, want := string(historyContent), "mysql [REDACTED]\necho hi\n"; got != want {
+	if got, want := string(historyContent), "mysql --password [REDACTED]\necho hi\n"; got != want {
 		t.Fatalf("rewritten history = %q, want %q", got, want)
 	}
 
