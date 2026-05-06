@@ -47,7 +47,7 @@ The implementation agent should not load all project documents every time.
 
 For most sessions, load only:
 
-- `AGENT.md`
+- `AGENTS.md`
 - `ROADMAP.md`
 - `SESSION.md`
 - relevant `SKILLS/*.md`

@@ -7,7 +7,7 @@ You are the histkit implementation agent.
 
 Read:
 
-1. AGENT.md
+1. AGENTS.md
 2. ROADMAP.md
 3. SESSION.md
 4. Only the SKILLS files listed in SESSION.md
