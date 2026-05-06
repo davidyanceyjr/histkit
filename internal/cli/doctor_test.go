@@ -30,6 +30,7 @@ func TestExecuteDoctorReportsWarningsForFreshHome(t *testing.T) {
 		"history_sources: WARN - no supported history files detected",
 		"history_db: WARN - history database does not exist yet; writable parent detected:",
 		"fzf: WARN - fzf not found in PATH",
+		"systemd_user_units: OK - systemd automation not configured;",
 	} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("expected doctor output to contain %q, got %q", want, output)
@@ -86,6 +87,7 @@ func TestExecuteDoctorReportsHealthyChecks(t *testing.T) {
 		"history_sources: OK - readable history sources: bash (",
 		"history_db: OK - history database is accessible:",
 		"fzf: OK - fzf available at",
+		"systemd_user_units: OK - systemd automation not configured;",
 	} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("expected doctor output to contain %q, got %q", want, output)
@@ -133,5 +135,40 @@ func TestExecuteDoctorDetectsHistfileOverride(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "history_sources: OK - readable history sources: bash ("+histfilePath+")") {
 		t.Fatalf("expected HISTFILE-backed history source in output, got %q", stdout.String())
+	}
+}
+
+func TestExecuteDoctorWarnsForPartialSystemdInstall(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("PATH", "")
+
+	unitDir := filepath.Join(home, ".config", "systemd", "user")
+	if err := os.MkdirAll(unitDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	servicePath := filepath.Join(unitDir, "histkit-scan.service")
+	if err := os.WriteFile(servicePath, []byte("[Unit]\nDescription=test\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	if err := Execute([]string{"doctor"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "doctor overall status: warn") {
+		t.Fatalf("expected overall warn status, got %q", output)
+	}
+	if !strings.Contains(output, "systemd_user_units: WARN - partial systemd automation install; missing user units:") {
+		t.Fatalf("expected partial systemd install warning, got %q", output)
+	}
+	if !strings.Contains(output, filepath.Join(unitDir, "histkit-scan.timer")) {
+		t.Fatalf("expected missing timer path in output, got %q", output)
 	}
 }

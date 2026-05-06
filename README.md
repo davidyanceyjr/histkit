@@ -120,7 +120,7 @@ Checks include:
 - Index availability
 - `fzf` presence
 - Backup path availability
-- `systemd --user` unit visibility, when relevant
+- `systemd --user` unit visibility when histkit automation is installed
 
 ```sh
 histkit doctor
