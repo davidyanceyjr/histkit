@@ -1,0 +1,6 @@
+[Unit]
+Description=Scan and index shell history with histkit
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/histkit scan --config %h/.config/histkit/config.toml

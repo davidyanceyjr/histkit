@@ -439,8 +439,8 @@ action = "redact"
 ~/.local/share/histkit/quarantine.log
 ~/.local/share/histkit/backups/
 ~/.local/share/histkit/audit.log
-~/.config/systemd/user/histkit-clean.service
-~/.config/systemd/user/histkit-clean.timer
+~/.config/systemd/user/histkit-scan.service
+~/.config/systemd/user/histkit-scan.timer
 ```
 
 ## Exit status
@@ -533,7 +533,7 @@ Example timer:
 
 ```ini
 [Unit]
-Description=Run histkit cleanup periodically
+Description=Run histkit scan periodically
 
 [Timer]
 OnBootSec=5m
@@ -544,7 +544,7 @@ Persistent=true
 WantedBy=timers.target
 ```
 
-Matching one-shot service for scheduled scanning:
+The repository ships a matching one-shot service template at `contrib/histkit-scan.service` for scheduled scanning:
 
 ```ini
 [Unit]
