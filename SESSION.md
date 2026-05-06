@@ -2,28 +2,28 @@
 
 ## Current session
 
-ID: `033-systemd-user-timer`
+ID: `034-doctor-systemd-checks`
 
 Status: completed
 
 ## Objective
 
-Add the initial optional `systemd --user` timer template for scheduled `histkit scan` runs and align the documentation with the shipped timer-and-service automation contract.
+Extend `histkit doctor` to verify optional `systemd --user` automation state without requiring a live `systemd` runtime or forcing automation on users who have not installed it.
 
 ## Scope
 
 Implement:
 
-- a contributed `systemd --user` timer unit under `contrib/`
-- deterministic tests that validate the shipped timer content without requiring a live `systemd` runtime
-- documentation updates that reference the shipped timer-and-service template pair consistently
+- a `doctor` check for contributed `systemd --user` scan unit visibility in the default user-unit directory
+- deterministic tests for unconfigured, partial-install, and fully present automation states
+- documentation updates that describe the automation check as optional and install-sensitive
 
 ## Out of scope
 
-- `doctor` systemd checks
-- automation for `clean --apply`
 - installer or enablement commands for user units
-- changes to the scan service command itself
+- runtime status checks against `systemctl`
+- automation for `clean --apply`
+- changes to the timer or service template contents
 
 ## Relevant skills
 
@@ -32,14 +32,14 @@ Implement:
 
 ## Acceptance criteria
 
-- the repository ships a `systemd --user` timer template for scheduled `histkit scan` runs
-- the timer content is covered by automated tests that do not require `systemd`
-- docs and examples describe the shipped timer-and-service template pair consistently
+- `histkit doctor` reports `OK` when no histkit user units are installed
+- `histkit doctor` warns when only part of the expected timer-and-service pair is present
+- deterministic tests cover the new systemd check without requiring a live `systemd` runtime
 - `go test ./...` passes
 
 ## Current repo state
 
-Milestone 5 remains in progress. The repository now ships both contributed scan automation templates under `contrib/`, and the docs describe the timer and service pair consistently. The next roadmap slice is `034-doctor-systemd-checks`.
+Milestone 5 remains in progress. `doctor` now inspects the default `systemd --user` unit directory for the shipped `histkit-scan.service` and `histkit-scan.timer` pair, while still treating automation as optional. The next roadmap slice is `035-shell-wrapper-polish`.
 
 ## Decisions already made
 
@@ -53,8 +53,8 @@ Milestone 5 remains in progress. The repository now ships both contributed scan 
 
 ## Risks to watch
 
-- Shipping timer and service examples that diverge from the contributed artifacts will confuse users.
-- Overreaching into `doctor` checks in this slice would blur the milestone boundary with `034`.
+- `doctor` must not warn on fresh systems that have not opted into automation.
+- The automation check should stay filesystem-based; runtime or installer behavior belongs in later slices if needed.
 
 ## Open questions
 
@@ -80,18 +80,18 @@ No questions answered this session.
 
 Summary:
 
-- Added `contrib/histkit-scan.timer` as the initial optional `systemd --user` timer template for scheduled `histkit scan` runs.
-- Extended deterministic repository tests to lock the shipped timer content alongside the existing service template.
-- Updated automation docs so they describe the shipped timer-and-service pair consistently.
+- Added a `systemd_user_units` doctor check that treats missing histkit user units as unconfigured rather than unhealthy.
+- Added deterministic tests for unconfigured, partial, and complete user-unit states.
+- Updated the `doctor` documentation to describe the systemd check as relevant only when histkit automation is installed.
 
 Files changed:
 
 - README.md
 - SESSION.md
-- SESSIONS/033-systemd-user-timer.md
-- contrib/histkit-scan.timer
-- contrib/systemd_units_test.go
-- docs/histkit-implementation-plan.md
+- SESSIONS/034-doctor-systemd-checks.md
+- internal/cli/doctor_test.go
+- internal/doctor/checks.go
+- internal/doctor/checks_test.go
 
 Files read:
 
@@ -100,19 +100,23 @@ Files read:
 - ROADMAP.md
 - SKILLS/systemd-user.md
 - SKILLS/testing.md
+- internal/doctor/checks.go
+- internal/cli/doctor.go
+- internal/cli/doctor_test.go
+- internal/config/config.go
 - README.md
 - docs/histkit-implementation-plan.md
-- contrib/systemd_units_test.go
-- contrib/histkit-scan.service
-- SESSIONS/032-systemd-user-service.md
 
 Tests added:
 
-- exact-content coverage for `contrib/histkit-scan.timer`
+- `TestCheckSystemdUserUnitsNotConfigured`
+- `TestCheckSystemdUserUnitsWarnsForPartialInstall`
+- `TestCheckSystemdUserUnitsReportsPresentPair`
+- `TestExecuteDoctorWarnsForPartialSystemdInstall`
 
 Tests run:
 
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./contrib`
+- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/doctor ./internal/cli`
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
 
 Known failures:
@@ -121,35 +125,47 @@ Known failures:
 
 Decisions made:
 
-- Ship the timer as a contributed `systemd --user` template under `contrib/` with the interval contract from `SKILLS/systemd-user.md`.
-- Keep timer automation scan-only by pairing it with the existing `histkit-scan.service` template.
-- Keep `doctor` integration deferred to roadmap slice `034`.
+- Treat absent histkit user units as `OK` because automation is optional.
+- Warn only on partial installs of the expected timer-and-service pair.
+- Keep the systemd check filesystem-based instead of adding runtime `systemctl` dependencies in this slice.
 
 Commands run:
 
-- `git branch --all --list '*033*'`
-- `git remote -v`
-- `git log --oneline -5`
-- `git checkout -b 033-systemd-user-timer`
-- `sed -n '1,220p' contrib/systemd_units_test.go`
-- `sed -n '520,575p' README.md`
-- `sed -n '728,766p' docs/histkit-implementation-plan.md`
+- `git status --short --branch`
 - `sed -n '1,260p' SESSION.md`
-- `gofmt -w contrib/systemd_units_test.go`
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./contrib`
-- `command -v systemd-analyze >/dev/null 2>&1 && systemd-analyze verify contrib/histkit-scan.service contrib/histkit-scan.timer || true`
+- `sed -n '1,260p' ROADMAP.md`
+- `sed -n '1,240p' SKILLS/systemd-user.md`
+- `sed -n '1,220p' SKILLS/testing.md`
+- `sed -n '1,260p' internal/doctor/checks.go`
+- `sed -n '1,260p' internal/config/config.go`
+- `rg -n "doctor|systemd|timer|service|automation" README.md docs internal cmd`
+- `rg --files internal cmd testdata | rg 'doctor|config'`
+- `sed -n '1,260p' internal/cli/doctor_test.go`
+- `sed -n '210,235p' docs/histkit-implementation-plan.md`
+- `sed -n '100,140p' README.md`
+- `sed -n '170,190p' docs/histkit-implementation-plan.md`
+- `sed -n '1,220p' internal/cli/doctor.go`
+- `sed -n '1,140p' internal/cli/root_test.go`
+- `rg -n "systemd --user unit visibility|backup path availability|doctor --json" README.md docs/histkit-implementation-plan.md internal/cli`
+- `git checkout -b 034-doctor-systemd-checks`
+- `gofmt -w internal/doctor/checks.go internal/doctor/checks_test.go internal/cli/doctor_test.go`
+- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/doctor ./internal/cli`
+- `gofmt -w internal/doctor/checks_test.go`
+- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/doctor ./internal/cli`
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
+- `git status --short`
+- `git diff -- README.md internal/doctor/checks.go internal/doctor/checks_test.go internal/cli/doctor_test.go`
 
 Assumptions made:
 
-- The timer interval contract already documented in `SKILLS/systemd-user.md` is sufficient for this slice, so no human decision is required before shipping the contributed timer template.
+- The absence of a dedicated automation config surface makes filesystem presence in `~/.config/systemd/user` the safest proxy for whether the systemd check is relevant in this slice.
 
 Risks introduced or reduced:
 
-- Reduced: the repository now ships the timer artifact that the docs already referenced, eliminating drift between prose and contributed automation files.
-- Reduced: timer content is now covered by deterministic tests instead of only inline documentation.
-- Remaining: both templates still assume `histkit` is installed at `%h/.local/bin/histkit` and that the documented config file exists before the user enables automation.
+- Reduced: `doctor` now catches incomplete histkit automation installs without warning on fresh systems.
+- Reduced: the systemd automation contract is now checked by tests instead of only by docs and manual review.
+- Remaining: the check does not inspect unit enablement or runtime health, only the installed file pair.
 
 Next recommended session:
 
-- `034-doctor-systemd-checks`
+- `035-shell-wrapper-polish`

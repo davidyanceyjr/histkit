@@ -58,6 +58,7 @@ func Run(home, configPath string) (Report, error) {
 	report.Checks = append(report.Checks, checkHistorySources(home))
 	report.Checks = append(report.Checks, checkHistoryDB(paths.HistoryDB))
 	report.Checks = append(report.Checks, checkFZF())
+	report.Checks = append(report.Checks, checkSystemdUserUnits(home))
 
 	return report, nil
 }
@@ -209,6 +210,69 @@ func checkFZF() CheckResult {
 	}
 
 	return CheckResult{Name: "fzf", Status: StatusOK, Detail: fmt.Sprintf("fzf available at %s", path)}
+}
+
+func checkSystemdUserUnits(home string) CheckResult {
+	unitDir := filepath.Join(home, ".config", "systemd", "user")
+	servicePath := filepath.Join(unitDir, "histkit-scan.service")
+	timerPath := filepath.Join(unitDir, "histkit-scan.timer")
+
+	serviceState, err := unitPathState(servicePath)
+	if err != nil {
+		return CheckResult{Name: "systemd_user_units", Status: StatusFail, Detail: err.Error()}
+	}
+	timerState, err := unitPathState(timerPath)
+	if err != nil {
+		return CheckResult{Name: "systemd_user_units", Status: StatusFail, Detail: err.Error()}
+	}
+
+	switch {
+	case !serviceState.exists && !timerState.exists:
+		return CheckResult{Name: "systemd_user_units", Status: StatusOK, Detail: fmt.Sprintf("systemd automation not configured; no histkit user units found in %s", unitDir)}
+	case !serviceState.exists || !timerState.exists:
+		missing := missingUnits(serviceState, timerState, servicePath, timerPath)
+		return CheckResult{Name: "systemd_user_units", Status: StatusWarn, Detail: fmt.Sprintf("partial systemd automation install; missing user units: %s", join(missing))}
+	default:
+		return CheckResult{Name: "systemd_user_units", Status: StatusOK, Detail: fmt.Sprintf("histkit systemd user units present: %s, %s", servicePath, timerPath)}
+	}
+}
+
+type pathState struct {
+	exists bool
+}
+
+func unitPathState(path string) (pathState, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return pathState{}, nil
+		}
+		return pathState{}, fmt.Errorf("stat systemd user unit %s: %v", path, err)
+	}
+	if info.IsDir() {
+		return pathState{}, fmt.Errorf("systemd user unit path is a directory: %s", path)
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return pathState{}, fmt.Errorf("open systemd user unit %s: %v", path, err)
+	}
+	if err := file.Close(); err != nil {
+		return pathState{}, fmt.Errorf("close systemd user unit %s: %v", path, err)
+	}
+
+	return pathState{exists: true}, nil
+}
+
+func missingUnits(serviceState, timerState pathState, servicePath, timerPath string) []string {
+	var missing []string
+	if !serviceState.exists {
+		missing = append(missing, servicePath)
+	}
+	if !timerState.exists {
+		missing = append(missing, timerPath)
+	}
+
+	return missing
 }
 
 func join(values []string) string {
