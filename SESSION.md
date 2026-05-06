@@ -2,45 +2,43 @@
 
 ## Current session
 
-ID: `035-shell-wrapper-polish`
+ID: `036-readme-usage-flow`
 
-Status: review-pending
+Status: ready
 
 ## Objective
 
-Polish the contributed Bash and Zsh shell wrappers so interactive `histkit pick` integration remains lightweight but is more ergonomic and reliable for real shell use.
+Tighten the README’s end-to-end usage flow so the documented `histkit` workflow is conservative, easy to follow, and aligned with the current command set and automation posture.
 
 ## Scope
 
 Implement:
 
-- optional custom key-sequence arguments for the Bash and Zsh binding helper functions while preserving the default `Ctrl-R` behavior
-- a Zsh widget refresh handoff before launching the full-screen picker
-- deterministic wrapper tests and README updates that cover the polished binding behavior
+- README flow improvements around `scan`, `doctor`, `clean --dry-run`, `clean --apply`, `restore`, and optional automation
+- consistency fixes where command ordering or wording obscures the intended safe workflow
+- documentation-only validation needed to keep the repo coherent after the wrapper and systemd slices
 
 ## Out of scope
 
-- changes to the `histkit pick` Go command or picker ranking
-- automatic shell-wrapper installation
-- shell history mutation or cleanup automation
-- shell-specific snippet expansion workflows
+- command behavior changes
+- new automation features
+- release packaging or distribution changes
+- destructive-history behavior changes
 
 ## Relevant skills
 
-- `SKILLS/go-cli.md`
 - `SKILLS/testing.md`
 
 ## Acceptance criteria
 
-- the contributed Bash and Zsh helpers still default to `Ctrl-R`
-- users can opt into an alternate key sequence without editing the wrapper files
-- the Zsh wrapper invalidates the active editor display before launching `histkit pick`
-- deterministic wrapper tests cover the new behavior
-- `go test ./...` passes
+- the README presents a clear conservative workflow from scan through restore
+- wrapper, doctor, and optional systemd automation documentation remain consistent
+- examples do not imply unattended destructive cleanup by default
+- any documentation-only checks run for the slice are recorded in the session artifact
 
 ## Current repo state
 
-Milestone 5 remains in progress. The contributed shell wrappers now keep the original lightweight shell-side model, accept optional custom key bindings, and prepare the Zsh line editor for launching the external picker. Branch `035-shell-wrapper-polish` is pushed and PR `#34` is open for review. The next roadmap slice after review and merge is `036-readme-usage-flow`.
+Milestone 5 remains in progress. Session `035-shell-wrapper-polish` is fully merged in PR `#34`, and branch cleanup is complete locally and remotely. The next roadmap slice is `036-readme-usage-flow`.
 
 ## Decisions already made
 
@@ -55,8 +53,8 @@ Milestone 5 remains in progress. The contributed shell wrappers now keep the ori
 
 ## Risks to watch
 
-- Zsh runtime behavior is still not executed in this environment because `zsh` is unavailable locally.
-- Wrapper polish must not change the existing default `Ctrl-R` contract unexpectedly for current users.
+- README guidance must not overstate automation maturity or imply destructive defaults.
+- Documentation should stay aligned with implemented commands instead of describing future behavior as current.
 
 ## Open questions
 
@@ -82,121 +80,55 @@ No questions answered this session.
 
 Summary:
 
-- Added optional key-sequence parameters to the Bash and Zsh wrapper binding helpers while keeping `Ctrl-R` as the default.
-- Added a `zle -I` handoff in the Zsh widget before running `histkit pick` so the full-screen picker starts from a cleaner editor state.
-- Extended wrapper tests and README usage examples for default and custom binding flows.
+- Session `035-shell-wrapper-polish` merged through PR `#34`.
+- Local `main` fast-forwarded to the merge result.
+- Session branch `035-shell-wrapper-polish` deleted locally and on `origin`.
 
 Files changed:
 
-- README.md
 - SESSION.md
-- SESSIONS/035-shell-wrapper-polish.md
-- contrib/histkit.bash
-- contrib/histkit.zsh
-- contrib/wrappers_test.go
 
 Files read:
 
-- AGENTS.md
-- SESSION.md
 - ROADMAP.md
-- SKILLS/go-cli.md
-- SKILLS/testing.md
-- SESSION_PROMPT.md
-- docs/HUMAN_GATES.md
-- docs/histkit-implementation-plan.md
 - README.md
-- DECISIONS.md
-- RISKS.md
-- SESSIONS/017-shell-wrappers.md
-- SESSIONS/032-systemd-user-service.md
-- SESSIONS/034-doctor-systemd-checks.md
-- internal/cli/pick.go
-- contrib/histkit.bash
-- contrib/histkit.zsh
-- contrib/wrappers_test.go
-- contrib/systemd_units_test.go
-- contrib/histkit-scan.service
-- contrib/histkit-scan.timer
+- docs/histkit-implementation-plan.md
 
 Tests added:
 
-- `TestBashBindHelperDefaultsToControlR`
-- `TestBashBindHelperAcceptsCustomKeySequence`
+- None yet for `036-readme-usage-flow`.
 
 Tests run:
 
-- `bash -n contrib/histkit.bash`
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./contrib`
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
+- None yet for `036-readme-usage-flow`.
 
 Known failures:
 
-- No test failures.
-- `zsh` is not installed in this environment, so Zsh runtime behavior remains covered by script-structure assertions rather than live widget execution.
-- Session closure is pending human approval, PR merge, and branch cleanup.
+- None currently recorded for `036-readme-usage-flow`.
 
 Decisions made:
 
-- Keep wrapper customization limited to bind-time key-sequence arguments instead of moving shell integration into the Go binary.
-- Preserve `Ctrl-R` as the default binding for both shells.
-- Add the Zsh display invalidation step in the wrapper rather than teaching the picker binary about shell editor state.
+- Start the next slice from README workflow coherence before release-readiness work.
 
 Commands run:
 
-- `pwd`
-- `rg --files`
-- `git status --short --branch`
-- `sed -n '1,240p' SESSION.md`
-- `sed -n '1,260p' ROADMAP.md`
-- `git checkout -b 035-shell-wrapper-polish`
-- `sed -n '1,220p' SKILLS/go-cli.md`
-- `sed -n '1,220p' SKILLS/testing.md`
-- `sed -n '1,240p' contrib/histkit.bash`
-- `sed -n '1,240p' contrib/histkit.zsh`
-- `sed -n '1,240p' contrib/wrappers_test.go`
-- `rg -n "035-shell-wrapper-polish|shell wrapper|wrapper|histkit.bash|histkit.zsh|pick" -S README.md docs ROADMAP.md SESSION_PROMPT.md SESSIONS`
-- `sed -n '665,710p' docs/histkit-implementation-plan.md`
-- `sed -n '860,885p' docs/histkit-implementation-plan.md`
-- `sed -n '995,1020p' docs/histkit-implementation-plan.md`
-- `sed -n '330,370p' README.md`
-- `sed -n '1,240p' internal/cli/pick.go`
-- `sed -n '1,220p' SESSION_PROMPT.md`
-- `sed -n '1,220p' SESSIONS/032-systemd-user-service.md`
-- `sed -n '1,220p' docs/HUMAN_GATES.md`
-- `rg -n "wrapper.*polish|shell wrapper.*polish|Ctrl-R|bind|READLINE|BUFFER|zle|replace the current shell editing buffer" -S README.md docs SESSIONS internal contrib`
-- `sed -n '1,220p' DECISIONS.md`
-- `sed -n '1,220p' RISKS.md`
-- `sed -n '1,220p' SESSIONS/017-shell-wrappers.md`
-- `bash -n contrib/histkit.bash`
-- `command -v zsh >/dev/null 2>&1 && zsh -n contrib/histkit.zsh || echo 'zsh-unavailable'`
-- `rg -n "TODO|FIXME|wrapper|shell integration|histkit_bind|__histkit_pick_bash|histkit_pick_zsh" -S contrib README.md internal docs`
-- `sed -n '1,240p' contrib/systemd_units_test.go`
-- `sed -n '1,220p' contrib/histkit-scan.service`
-- `sed -n '1,220p' contrib/histkit-scan.timer`
-- `bash -lc 'f(){ local keyseq="${1:-\\C-r}"; bind -x "\\\"$keyseq\\\":\\\"__histkit_pick_bash\\\""; bind -X; }; __histkit_pick_bash(){ :; }; f; f "\\C-x\\C-r"'`
-- `bash -lc 'f(){ local keyseq="${1:-\\C-r}"; bind -x "\\\"$keyseq\\\":\\\"__histkit_pick_bash\\\""; bind -X; }; __histkit_pick_bash(){ :; }; f "\\C-x\\C-r"'`
-- `gofmt -w contrib/wrappers_test.go`
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./contrib`
-- `git diff -- contrib/histkit.bash contrib/histkit.zsh contrib/wrappers_test.go README.md`
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
-- `git remote -v`
-- `git add README.md SESSION.md SESSIONS/035-shell-wrapper-polish.md contrib/histkit.bash contrib/histkit.zsh contrib/wrappers_test.go`
-- `git commit -m "Polish shell wrapper bindings"`
-- `git push -u origin 035-shell-wrapper-polish`
-- created draft PR `#34` (`https://github.com/davidyanceyjr/histkit/pull/34`)
+- `gh pr ready 34 --repo davidyanceyjr/histkit`
+- `gh pr view 34 --repo davidyanceyjr/histkit --json isDraft,mergeStateStatus,url`
+- `gh pr merge 34 --repo davidyanceyjr/histkit --merge`
+- `gh pr view 34 --repo davidyanceyjr/histkit --json state,mergedAt,url`
+- `git checkout main`
+- `git pull --ff-only origin main`
+- `git push origin --delete 035-shell-wrapper-polish`
+- `git branch -d 035-shell-wrapper-polish`
 
 Assumptions made:
 
-- Allowing an optional custom key sequence is a safe, reversible wrapper-level enhancement because it does not alter the `histkit pick` output contract or touch shell history data.
+- `036-readme-usage-flow` can proceed as a documentation-focused slice without loading unrelated implementation skills.
 
 Risks introduced or reduced:
 
-- Reduced: users no longer need to edit the contributed wrapper files just to avoid a `Ctrl-R` binding conflict.
-- Reduced: the Zsh wrapper now prepares the editor display before starting the external picker, which lowers the risk of awkward terminal redraw behavior.
-- Remaining: live Zsh widget execution is still unverified in this workspace due the missing local `zsh` binary.
+- Reduced: the repository is back on `main` with the completed wrapper slice merged and cleanup finished.
 
 Next recommended session:
 
-- obtain human review for PR `#34`, then merge and clean up the branch
 - `036-readme-usage-flow`

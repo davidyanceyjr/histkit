@@ -1,6 +1,6 @@
 # 035-shell-wrapper-polish
 
-Status: review-pending
+Status: completed
 
 ## Summary
 
@@ -55,7 +55,7 @@ Completed.
 
 - No test failures.
 - `zsh` is not installed in this environment, so Zsh runtime behavior remains covered by script-structure assertions rather than live widget execution.
-- Session closure is pending human approval, PR merge, and branch cleanup.
+- Session closed after human approval, merge of PR `#34`, and local/remote branch cleanup.
 
 ## Commands run
 
@@ -101,6 +101,12 @@ Completed.
 - `git commit -m "Polish shell wrapper bindings"`
 - `git push -u origin 035-shell-wrapper-polish`
 - created draft PR `#34` (`https://github.com/davidyanceyjr/histkit/pull/34`)
+- `gh pr ready 34 --repo davidyanceyjr/histkit`
+- `gh pr merge 34 --repo davidyanceyjr/histkit --merge`
+- `git checkout main`
+- `git pull --ff-only origin main`
+- `git push origin --delete 035-shell-wrapper-polish`
+- `git branch -d 035-shell-wrapper-polish`
 
 ## Decisions made
 
@@ -125,5 +131,4 @@ Completed.
 
 ## Next slice recommendation
 
-- obtain human review for PR `#34`, then merge and clean up the branch
 - `036-readme-usage-flow`
