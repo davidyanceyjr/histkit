@@ -8,6 +8,30 @@ import (
 	"testing"
 )
 
+func TestExecuteStatsHelp(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	if err := Execute([]string{"stats", "--help"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+
+	output := stdout.String()
+	for _, want := range []string{
+		"Usage:\n  histkit stats [--config <path>]",
+		"stats reports what has already been indexed.",
+		"It does not rescan history files or modify them.",
+		"--config <path>   load a specific histkit config file before reading stats",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected stats help to contain %q, got %q", want, output)
+		}
+	}
+}
+
 func TestExecuteStatsEmptyIndex(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

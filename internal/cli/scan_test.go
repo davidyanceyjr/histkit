@@ -11,6 +11,31 @@ import (
 	"histkit/internal/index"
 )
 
+func TestExecuteScanHelp(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	if err := Execute([]string{"scan", "--help"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+
+	output := stdout.String()
+	for _, want := range []string{
+		"Usage:\n  histkit scan [--shell <shell>] [--config <path>]",
+		"scan reads supported history files and writes normalized entries into the local index.",
+		"It does not rewrite shell history.",
+		"--shell <shell>   scan only one supported shell source (bash or zsh)",
+		"--config <path>   load a specific histkit config file before scanning",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected scan help to contain %q, got %q", want, output)
+		}
+	}
+}
+
 func TestExecuteScanIndexesBashHistory(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

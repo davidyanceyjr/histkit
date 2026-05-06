@@ -52,7 +52,16 @@ func writeCleanUsage(w io.Writer) {
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  histkit clean [--apply] [--dry-run] [--shell <shell>] [--config <path>]")
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Preview or apply built-in shell history cleanup rules with backup, atomic rewrite, and audit logging.")
+	fmt.Fprintln(w, "Preview or apply built-in shell history cleanup rules.")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Without --apply, clean runs in preview mode and prints the planned actions without changing history files.")
+	fmt.Fprintln(w, "--apply rewrites matching history sources, creates backups, and appends an audit record.")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Flags:")
+	fmt.Fprintln(w, "  --dry-run         render the cleanup preview explicitly without changing files")
+	fmt.Fprintln(w, "  --apply           rewrite matching history files; requires backup_history=true")
+	fmt.Fprintln(w, "  --shell <shell>   clean only one supported shell source (bash or zsh)")
+	fmt.Fprintln(w, "  --config <path>   load a specific histkit config file before cleaning")
 }
 
 type cleanOptions struct {

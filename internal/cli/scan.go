@@ -42,7 +42,14 @@ func writeScanUsage(w io.Writer) {
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  histkit scan [--shell <shell>] [--config <path>]")
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Parse detected shell history sources, update the local SQLite index, and report a summary.")
+	fmt.Fprintln(w, "Parse detected shell history sources, refresh the local SQLite history index, and report what was indexed.")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "scan reads supported history files and writes normalized entries into the local index.")
+	fmt.Fprintln(w, "It does not rewrite shell history.")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Flags:")
+	fmt.Fprintln(w, "  --shell <shell>   scan only one supported shell source (bash or zsh)")
+	fmt.Fprintln(w, "  --config <path>   load a specific histkit config file before scanning")
 }
 
 type scanOptions struct {
