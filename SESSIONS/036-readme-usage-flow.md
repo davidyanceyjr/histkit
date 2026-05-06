@@ -82,6 +82,10 @@ Completed.
 - `git diff -- README.md` - reviewed the documentation changes.
 - `mkdir -p .gocache .gomodcache && env GOCACHE=... GOMODCACHE=... GOPATH=... go test ./...` - ran the full test suite successfully with repo-local caches.
 - `chmod -R u+w .gocache .gomodcache .gopath && rm -rf .gocache .gomodcache .gopath` - cleaned the temporary Go cache directories after verification.
+- `git add README.md SESSION.md SESSIONS/036-readme-usage-flow.md` - staged only the session files.
+- `git commit -m "Tighten README usage flow"` - created the session commit.
+- `git push -u origin 036-readme-usage-flow` - pushed the session branch to GitHub.
+- created draft PR `#35` (`https://github.com/davidyanceyjr/histkit/pull/35`) - opened the review handoff required by the workflow.
 
 ## Decisions made
 

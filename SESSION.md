@@ -38,7 +38,7 @@ Implement:
 
 ## Current repo state
 
-Milestone 5 remains in progress. Branch `036-readme-usage-flow` contains a documentation-only README alignment pass that is ready to be committed, pushed, and reviewed. The next roadmap slice after this review is `037-release-readiness-pass`.
+Milestone 5 remains in progress. Branch `036-readme-usage-flow` has been pushed and is under review in draft PR `#35`. The next roadmap slice after this review is `037-release-readiness-pass`.
 
 ## Decisions already made
 
@@ -147,6 +147,10 @@ Commands run:
 - `go run ./cmd/histkit help`
 - `go run ./cmd/histkit help clean`
 - `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./...`
+- `git add README.md SESSION.md SESSIONS/036-readme-usage-flow.md`
+- `git commit -m "Tighten README usage flow"`
+- `git push -u origin 036-readme-usage-flow`
+- created draft PR `#35` (`https://github.com/davidyanceyjr/histkit/pull/35`)
 
 Assumptions made:
 
