@@ -48,7 +48,7 @@ func runRestore(args []string, stdout io.Writer) error {
 
 func writeRestoreUsage(w io.Writer) {
 	fmt.Fprintln(w, "Usage:")
-	fmt.Fprintln(w, "  histkit restore [backup-id] [--config <path>]")
+	fmt.Fprintln(w, "  histkit restore [--config <path>] [backup-id]")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "List available backup records or restore a specific backup by identifier.")
 }
