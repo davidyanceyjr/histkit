@@ -20,18 +20,19 @@ func TestExecuteHelp(t *testing.T) {
 	if !strings.Contains(stdout.String(), "Usage:") {
 		t.Fatalf("expected help output, got %q", stdout.String())
 	}
-	if !strings.Contains(stdout.String(), "scan") {
-		t.Fatalf("expected command list in help output, got %q", stdout.String())
-	}
-	if !strings.Contains(stdout.String(), "clean") {
-		t.Fatalf("expected clean command in help output, got %q", stdout.String())
-	}
-	if !strings.Contains(stdout.String(), "restore") {
-		t.Fatalf("expected restore command in help output, got %q", stdout.String())
-	}
-	if !strings.Contains(stdout.String(), "pick") {
-		t.Fatalf("expected pick command in help output, got %q", stdout.String())
-	}
+	output := stdout.String()
+	assertHelpContains(t, output,
+		"histkit is a conservative CLI for shell history hygiene, reusable snippets, and fuzzy command recall.",
+		"It keeps raw shell history, the local history index, and snippets separate by design.",
+		"The normal workflow is: doctor -> scan -> stats or pick -> clean --dry-run -> clean --apply -> restore.",
+		"doctor  Check config, local paths, detected history sources, fzf, and related environment state",
+		"scan    Parse supported shell history sources and refresh the local SQLite history index",
+		"stats   Show indexed history counts by shell and source",
+		"pick    Select a command from indexed history and snippets through fzf",
+		"clean   Preview or apply cleanup rules to shell history with backups and audit logging",
+		"restore List recorded backups or restore a specific backup",
+		"Use \"histkit help <command>\" or \"histkit <command> --help\" for command-specific help.",
+	)
 }
 
 func TestExecuteScanPlaceholder(t *testing.T) {
@@ -79,5 +80,15 @@ func assertCommandOutput(t *testing.T, args []string, want string) {
 	}
 	if !strings.Contains(stdout.String(), want) {
 		t.Fatalf("expected stdout for %v to contain %q, got %q", args, want, stdout.String())
+	}
+}
+
+func assertHelpContains(t *testing.T, output string, wants ...string) {
+	t.Helper()
+
+	for _, want := range wants {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected help output to contain %q, got %q", want, output)
+		}
 	}
 }
