@@ -353,6 +353,12 @@ source /path/to/histkit/contrib/histkit.bash
 histkit_bind_bash_pick
 ```
 
+Pass an alternate readline key sequence to use a different binding:
+
+```sh
+histkit_bind_bash_pick '\C-x\C-r'
+```
+
 Example Zsh setup:
 
 ```sh
@@ -360,7 +366,13 @@ source /path/to/histkit/contrib/histkit.zsh
 histkit_bind_zsh_pick
 ```
 
-Both wrappers bind `Ctrl-R` to invoke `histkit pick`, capture the selected command, and replace the current shell editing buffer with that command.
+Pass an alternate ZLE key sequence to use a different binding:
+
+```sh
+histkit_bind_zsh_pick '^X^R'
+```
+
+Both wrappers default to `Ctrl-R`, invoke `histkit pick`, capture the selected command, and replace the current shell editing buffer with that command.
 
 ## Configuration
 
