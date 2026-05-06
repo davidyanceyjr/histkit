@@ -2,44 +2,46 @@
 
 ## Current session
 
-ID: `031-failure-recovery-tests`
+ID: `038-inline-password-flag-hardening`
 
 Status: completed
 
 ## Objective
 
-Add focused failure-recovery coverage for safe apply and restore paths.
+Harden inline password detection and reduce false positives from high-entropy token matching.
 
 ## Scope
 
 Implement:
 
-- tests for cleanup-apply behavior when audit logging fails after backup creation and atomic rewrite
-- tests for restore behavior when audit logging fails after a successful restore
-- tests for backup-creation cleanup when metadata persistence fails
-- tests for restore checksum mismatch preserving the target file
+- narrower inline password matching that keeps `--password`/`--passwd` coverage while avoiding broad short-flag matches
+- redaction behavior that preserves the password-bearing flag shape while masking only the secret value
+- high-entropy token guards that avoid quarantining common package, path, and device-label commands
+- focused sanitizer regression tests for both true positives and false positives
 
 ## Out of scope
 
 - new user-facing commands
-- backup retention or migration for metadata-less backups
-- broader process or concurrency control for live shell sessions
+- config-driven custom secret rules
+- shell-aware command parsing beyond current tokenizer/field handling
+- broader sanitizer config or scoring changes outside the built-in secret rules
 
 ## Relevant skills
 
-- `SKILLS/backup-restore.md`
+- `SKILLS/sanitizer.md`
 - `SKILLS/testing.md`
 
 ## Acceptance criteria
 
-- backup creation leaves no stray backup file when metadata persistence fails
-- failed restore integrity checks leave the target history file unchanged
-- failed audit logging after apply or restore returns an error while preserving the successfully rewritten/restored history file and its backup
+- commands like `mysql --password hunter2` and `mysql -phunter2` still match and redact safely
+- commands like `ssh -p 2222 prod-box` do not match the inline password rule
+- high-entropy matching still catches sensitive key/value forms such as exported tokens
+- package, path, and device-label commands covered by tests do not trigger high-entropy quarantine
 - `go test ./...` passes
 
 ## Current repo state
 
-Milestone 4 now has coverage for key failure boundaries in backup creation, cleanup apply, and restore behavior.
+Milestone 3 secret rules already exist, but inline password detection is overly broad and the high-entropy heuristic still trusts generic mixed-case tokens too readily.
 
 ## Decisions already made
 
@@ -52,8 +54,8 @@ Milestone 4 now has coverage for key failure boundaries in backup creation, clea
 
 ## Risks to watch
 
-- Live shell race conditions remain a product risk even though atomic writes and backups are covered.
-- Legacy backups created before metadata persistence still remain outside the current restore flow.
+- Over-narrowing the secret heuristics could miss real credentials that the current catalog catches.
+- Over-broad matching will damage trust by flagging routine admin commands as secrets.
 
 ## Open questions
 
@@ -79,38 +81,53 @@ No questions answered this session.
 
 Summary:
 
-- Added a backup-creation failure test proving the copied backup file is removed if metadata persistence fails.
-- Added restore integrity coverage proving checksum mismatch leaves the target history file unchanged.
-- Added apply and restore CLI recovery tests proving audit-log append failures return an error after the history file change is already safely committed, while backups and restored content remain intact.
+- Replaced the broad inline password regex with a structured heuristic that still catches `--password`, `--passwd`, and MySQL-style `-psecret` forms without flagging unrelated `-p` options.
+- Kept password-bearing commands reviewable by redacting only the secret value instead of collapsing the whole argument.
+- Narrowed high-entropy matching to sensitive key/value contexts so package names, filesystem paths, and device labels are not quarantined by the generic entropy rule.
+- NOTE: `ROADMAP.md` is intentionally included with this slice to record `038` and `039` under Milestone 3 and to codify the new sanitizer false-positive exit criterion.
 
 Files changed:
 
+- ROADMAP.md
 - SESSION.md
-- SESSIONS/031-failure-recovery-tests.md
-- internal/backup/create_test.go
-- internal/backup/store_test.go
+- SESSIONS/038-inline-password-flag-hardening.md
 - internal/cli/clean_test.go
-- internal/cli/restore_test.go
+- internal/sanitize/apply_test.go
+- internal/sanitize/matcher.go
+- internal/sanitize/preview_test.go
+- internal/sanitize/redact.go
+- internal/sanitize/redact_test.go
+- internal/sanitize/secrets.go
+- internal/sanitize/secrets_test.go
 
 Files read:
 
 - SESSION.md
 - ROADMAP.md
-- README.md
-- internal/cli/clean.go
-- internal/cli/restore.go
-- internal/backup/store.go
+- SKILLS/sanitizer.md
+- SKILLS/testing.md
+- docs/histkit-implementation-plan.md
+- RISKS.md
+- SESSIONS/021-secret-rules.md
+- internal/sanitize/secrets.go
+- internal/sanitize/matcher.go
+- internal/sanitize/redact.go
+- internal/sanitize/secrets_test.go
+- internal/sanitize/redact_test.go
+- internal/sanitize/preview_test.go
+- internal/sanitize/apply_test.go
+- internal/cli/clean_test.go
 
 Tests added:
 
-- `TestCreateRemovesBackupFileWhenRecordWriteFails`
-- restore checksum-mismatch preservation assertion in `TestRestoreRejectsChecksumMismatch`
-- `TestExecuteCleanApplyReturnsErrorButKeepsRewriteWhenAuditAppendFails`
-- `TestExecuteRestoreReturnsErrorButKeepsRestoredFileWhenAuditAppendFails`
+- inline password true-positive coverage for MySQL short `-psecret`
+- false-positive guards for `ssh -p`, `grep -p`, package names, and device-label/path commands
+- redaction coverage for preserving password flags while masking only values
+- high-entropy flag-value redaction coverage for sensitive `--session-token` style arguments
 
 Tests run:
 
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/backup ./internal/cli`
+- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/sanitize`
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
 
 Known failures:
@@ -119,36 +136,49 @@ Known failures:
 
 Decisions made:
 
-- Treat audit logging as post-commit bookkeeping for apply and restore: a logging failure is surfaced as an error, but the successfully rewritten or restored history file is not rolled back.
-- Treat backup metadata persistence as part of backup creation completeness: if it fails, the copied backup payload is removed.
+- Treat inline password detection as a structured heuristic instead of a broad regex so short `-p` matching can stay command-aware.
+- Preserve flag structure in redacted output for password-bearing commands to keep dry-run and rewritten history more reviewable.
+- Restrict the built-in high-entropy heuristic to sensitive key/value contexts rather than arbitrary mixed-case tokens.
+- Fold the false-positive guard work from slice `039-high-entropy-token-false-positive-guards` into this session because it shares the same sanitizer boundary.
 
 Commands run:
 
 - `git status --short --branch`
-- `sed -n '1,240p' SESSION.md`
-- `sed -n '1,220p' ROADMAP.md`
-- `rg -n "failure|recovery|restore|clean apply|backup|audit" internal README.md docs -g '!**/*_test.go'`
-- `git checkout -b 031-failure-recovery-tests`
-- `sed -n '1,260p' internal/cli/clean.go`
-- `sed -n '1,260p' internal/cli/restore.go`
-- `sed -n '1,260p' internal/backup/store.go`
-- `sed -n '560,590p' README.md`
-- `sed -n '1,260p' internal/cli/clean_test.go`
-- `sed -n '1,260p' internal/cli/restore_test.go`
-- `gofmt -w internal/backup/create_test.go internal/backup/store_test.go internal/cli/clean_test.go internal/cli/restore_test.go`
-- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/backup ./internal/cli`
+- `sed -n '1,220p' SKILLS/sanitizer.md`
+- `sed -n '1,220p' SKILLS/testing.md`
+- `sed -n '1,240p' ROADMAP.md`
+- `git diff -- ROADMAP.md`
+- `rg -n "password|passwd|entropy|token|secret|credential|bearer|apikey|api_key|inline" internal/sanitize internal -g '!**/*_test.go'`
+- `sed -n '1,260p' internal/sanitize/secrets.go`
+- `sed -n '1,260p' internal/sanitize/matcher.go`
+- `sed -n '1,260p' internal/sanitize/redact.go`
+- `sed -n '1,260p' internal/sanitize/secrets_test.go`
+- `sed -n '1,260p' internal/sanitize/redact_test.go`
+- `sed -n '1,260p' internal/sanitize/preview_test.go`
+- `sed -n '1,140p' internal/sanitize/apply_test.go`
+- `sed -n '1,240p' internal/cli/clean_test.go`
+- `sed -n '1,220p' SESSIONS/021-secret-rules.md`
+- `sed -n '1,220p' docs/histkit-implementation-plan.md`
+- `sed -n '1,220p' RISKS.md`
+- `git checkout -b 038-inline-password-flag-hardening`
+- `gofmt -w internal/sanitize/secrets.go internal/sanitize/matcher.go internal/sanitize/redact.go internal/sanitize/secrets_test.go internal/sanitize/redact_test.go internal/sanitize/preview_test.go`
+- `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./internal/sanitize`
+- `gofmt -w internal/sanitize/matcher.go internal/sanitize/secrets_test.go internal/sanitize/apply_test.go`
+- `gofmt -w internal/sanitize/secrets_test.go internal/sanitize/redact_test.go`
+- `gofmt -w internal/cli/clean_test.go`
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
 - `git status --short`
-- `date -u +%Y-%m-%d`
 
 Assumptions made:
 
-- No rollback is attempted after a successful atomic rewrite or restore if only audit logging fails; the backup remains the recovery mechanism.
+- Field-based tokenization with `strings.Fields` is sufficient for the current hardening slice even though it is not a full shell parser.
 
 Risks introduced or reduced:
 
-- Reduced: failure boundaries for apply and restore are now documented in executable tests instead of only implicit in implementation order.
-- Reduced: backup creation now has explicit regression coverage for metadata-write cleanup.
+- Reduced: routine `-p` flags and mixed-case path or package tokens are much less likely to trigger false secret matches.
+- Reduced: preview and rewritten output now preserve password flag context instead of hiding the entire argument shape.
+- Reduced: the roadmap now explicitly tracks this sanitizer hardening work and its false-positive guard expectation.
+- Remaining: quoted or shell-escaped password values are still handled by the current field-based heuristic, not shell-specific parsing.
 
 Next recommended session:
 

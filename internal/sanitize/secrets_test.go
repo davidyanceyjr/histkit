@@ -42,6 +42,12 @@ func TestMatchSecretRulesTruePositives(t *testing.T) {
 			action:   ActionRedact,
 		},
 		{
+			name:     "mysql short password flag",
+			command:  "mysql -phunter2",
+			ruleName: "inline-password-flag",
+			action:   ActionRedact,
+		},
+		{
 			name:     "url embedded credentials",
 			command:  "curl https://user:secret@example.com/path",
 			ruleName: "url-embedded-credentials",
@@ -56,6 +62,12 @@ func TestMatchSecretRulesTruePositives(t *testing.T) {
 		{
 			name:     "high entropy token",
 			command:  "export TOKEN=AbcdefGhijklmnopQRST12uvwxYZ34",
+			ruleName: "high-entropy-token",
+			action:   ActionQuarantine,
+		},
+		{
+			name:     "high entropy token flag",
+			command:  "deploy --session-token AbcdefGhijklmnopQRST12uvwxYZ34",
 			ruleName: "high-entropy-token",
 			action:   ActionQuarantine,
 		},
@@ -102,6 +114,11 @@ func TestMatchSecretRulesFalsePositiveGuards(t *testing.T) {
 		"kubectl get pods",
 		"curl https://example.com/path",
 		"echo password rotation complete",
+		"ssh -p 2222 prod-box",
+		"grep -p hunter2 notes.txt",
+		"ls /dev/disk/by-label/WD_BLACK_SN850X_2TB",
+		"export TOKEN=/dev/disk/by-label/WD_BLACK_SN850X_2TB",
+		"dnf install MegaToolKit-Alpha9Beta8",
 	}
 
 	for _, command := range tests {
@@ -125,24 +142,59 @@ func TestMatchSecretRulesFalsePositiveGuards(t *testing.T) {
 }
 
 func TestSecretRuleRedactionsProduceMaskedOutput(t *testing.T) {
-	entry := history.HistoryEntry{
-		Shell:      history.ShellBash,
-		SourceFile: "/home/tester/.bash_history",
-		RawLine:    "curl -H 'Authorization: Bearer abcdefghijklmnopqrstuvwx123456' https://example.com",
-		Command:    "curl -H 'Authorization: Bearer abcdefghijklmnopqrstuvwx123456' https://example.com",
+	tests := []struct {
+		name     string
+		command  string
+		ruleName string
+		want     string
+	}{
+		{
+			name:     "bearer token",
+			command:  "curl -H 'Authorization: Bearer abcdefghijklmnopqrstuvwx123456' https://example.com",
+			ruleName: "bearer-token",
+			want:     "curl -H 'Authorization: [REDACTED]' https://example.com",
+		},
+		{
+			name:     "inline password flag",
+			command:  "mysql --password hunter2",
+			ruleName: "inline-password-flag",
+			want:     "mysql --password [REDACTED]",
+		},
+		{
+			name:     "mysql short password flag",
+			command:  "mysql -phunter2",
+			ruleName: "inline-password-flag",
+			want:     "mysql -p[REDACTED]",
+		},
 	}
 
-	matches, err := MatchSecretRules(entry)
-	if err != nil {
-		t.Fatalf("MatchSecretRules returned error: %v", err)
-	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			entry := history.HistoryEntry{
+				Shell:      history.ShellBash,
+				SourceFile: "/home/tester/.bash_history",
+				RawLine:    tc.command,
+				Command:    tc.command,
+			}
 
-	for _, match := range matches {
-		if match.Action != ActionRedact {
-			continue
-		}
-		if match.After == "" || match.After == match.Before {
-			t.Fatalf("redact match.After = %q, want transformed masked output", match.After)
-		}
+			matches, err := MatchSecretRules(entry)
+			if err != nil {
+				t.Fatalf("MatchSecretRules returned error: %v", err)
+			}
+
+			var found bool
+			for _, match := range matches {
+				if match.RuleName != tc.ruleName {
+					continue
+				}
+				found = true
+				if match.After != tc.want {
+					t.Fatalf("match.After = %q, want %q", match.After, tc.want)
+				}
+			}
+			if !found {
+				t.Fatalf("expected rule %q in matches %#v", tc.ruleName, matches)
+			}
+		})
 	}
 }

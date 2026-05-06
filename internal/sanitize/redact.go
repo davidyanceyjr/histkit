@@ -62,19 +62,10 @@ func RedactCommand(command string, rule Rule) (string, error) {
 func redactHeuristic(command, detector string) (string, bool, error) {
 	switch detector {
 	case "high_entropy_token":
-		redacted := command
-		matched := false
-		for _, token := range tokenize(command) {
-			if !isHighEntropyToken(token) {
-				continue
-			}
-			replacement := redactedPlaceholder
-			if key, value, ok := strings.Cut(token, "="); ok && isHighEntropyToken(value) {
-				replacement = key + "=" + redactedPlaceholder
-			}
-			redacted = strings.ReplaceAll(redacted, token, replacement)
-			matched = true
-		}
+		redacted, matched := redactHighEntropySensitiveValues(command)
+		return redacted, matched, nil
+	case "inline_password_flag":
+		redacted, matched := redactInlinePasswordFlags(command)
 		return redacted, matched, nil
 	case "large_paste_blob":
 		if !hasLargePasteBlob(command) {
