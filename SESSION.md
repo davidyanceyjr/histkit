@@ -2,42 +2,44 @@
 
 ## Current session
 
-ID: `037-release-readiness-pass`
+ID: `042-root-help-refresh`
 
-Status: in_review
+Status: completed
 
 ## Objective
 
-Run a Milestone 5 release-readiness pass that verifies the shipped automation, wrapper, doctor, and documentation surfaces remain coherent with the implemented command set, and fix only the smallest remaining release-blocking polish gaps.
+Refresh `histkit --help` so the root help output gives a clearer application summary, explains the high-level safe workflow, and provides more descriptive command summaries without changing command behavior.
 
 ## Scope
 
 Implement:
 
-- verify Milestone 5 surfaces against the current implementation: README, `configs/config.example.toml`, contributed wrappers, contributed `systemd --user` units, and relevant help text
-- add or tighten lightweight verification where a release-readiness mismatch can otherwise drift silently
-- run the most relevant tests for the touched surfaces and a full repository verification pass if the slice remains small
+- expand the root help summary to reflect histkit's current CLI role
+- improve the root command list with more informative one-line descriptions
+- make root help point clearly to per-command help
+- add or tighten tests for the revised root help output
 
 ## Out of scope
 
-- new command behavior or automation features
-- release packaging or distribution changes
-- destructive-history behavior changes
-- broad rewrites outside the identified release-readiness gap
+- per-command help rewrites for `histkit <command> --help`
+- new flags or command behavior changes
+- picker startup or candidate-loading changes
+- README or broader documentation rewrites unless needed to resolve a root-help wording conflict
 
 ## Relevant skills
 
+- `SKILLS/go-cli.md`
 - `SKILLS/testing.md`
 
 ## Acceptance criteria
 
-- Milestone 5 user-facing artifacts match the implemented command surface and defaults
-- any remaining release blocker is explicitly recorded if it cannot be safely resolved in-slice
-- verification for the touched release-readiness surface is recorded in the session artifact
+- `histkit --help` presents a stronger overall summary than the current single-line description
+- root help describes command purpose in enough detail to distinguish scan, pick, clean, restore, stats, and doctor at a glance
+- automated tests verify the new summary and guidance text
 
 ## Current repo state
 
-Session `036-readme-usage-flow` is merged through PR `#35`, branch cleanup is complete, and local `main` is clean and up to date. Branch `037-release-readiness-pass` is active for the final Milestone 5 closeout slice.
+Branch `042-root-help-refresh` is being rebuilt on top of `main` so the PR contains only the root help slice. The implementation and tests for this session are complete.
 
 ## Decisions already made
 
@@ -52,9 +54,8 @@ Session `036-readme-usage-flow` is merged through PR `#35`, branch cleanup is co
 
 ## Risks to watch
 
-- Release-facing examples must not drift from the implemented defaults or supported flags.
-- Documentation and shipped templates must not imply unattended destructive cleanup.
-- The final Milestone 5 closeout must avoid expanding into feature work beyond the smallest coherence fix.
+- Root help text should stay accurate to the current implemented behavior, not the aspirational roadmap.
+- Help copy should reinforce the separation between raw history, indexed history, and snippets without turning the root screen into a README dump.
 
 ## Open questions
 
@@ -76,107 +77,93 @@ Every answered question must be recorded here before it is removed from the acti
 
 No questions answered this session.
 
+## Working state
+
+- intent: refresh the root help output for `histkit --help`
+- scope: `internal/cli/root.go`, `internal/cli/root_test.go`, `SESSION.md`, and `SESSIONS/042-root-help-refresh.md`
+- constraints: keep behavior non-destructive, keep command handlers thin, avoid changing per-command help in this slice
+- files read:
+  - `AGENTS.md`: required implementation workflow and session-record rules
+  - `SESSION.md`: prior session context and active working-state format
+  - `ROADMAP.md`: milestone boundaries and current roadmap state
+  - `SKILLS/go-cli.md`: CLI implementation constraints
+  - `SKILLS/testing.md`: verification expectations
+  - `README.md`: current product wording for the CLI summary and safe workflow
+  - `internal/cli/root.go`: current root help implementation
+  - `internal/cli/root_test.go`: existing root help assertions
+  - `SESSIONS/000-template.md`: session note template
+- files changed:
+  - `SESSION.md`: active and completed session state for slice 042
+  - `internal/cli/root.go`: refreshed root help summary, workflow guidance, and command descriptions
+  - `internal/cli/root_test.go`: strengthened root help assertions for the revised root help output
+  - `SESSIONS/042-root-help-refresh.md`: recorded the completed session
+- commands run:
+  - `pwd`: confirmed repository root
+  - `git status --short --branch`: confirmed prior branch state and current working branch
+  - `sed -n '1,220p' SESSION.md`: read prior session state
+  - `sed -n '1,260p' ROADMAP.md`: read roadmap boundaries
+  - `rg --files`: inventoried repository files
+  - `sed -n '1,240p' /home/opsman/.codex/plugins/cache/openai-curated/github/9d07fd08/skills/yeet/SKILL.md`: read publish workflow skill
+  - `git checkout -b 042-root-help-refresh`: created the original session branch
+  - `sed -n '1,220p' internal/cli/root.go`: read current root help implementation
+  - `sed -n '1,220p' internal/cli/root_test.go`: read current root help tests
+  - `sed -n '1,220p' README.md`: read current product wording
+  - `gofmt -w internal/cli/root.go internal/cli/root_test.go`: formatted edited Go files
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: verified the CLI slice
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`: verified the full repository test suite
+  - `sed -n '1,240p' SESSIONS/000-template.md`: loaded the session note template
+  - `gh --version`: verified GitHub CLI availability for publish workflow
+  - `gh auth status`: verified authenticated GitHub session
+  - `git remote get-url origin`: confirmed publish target repository
+  - `git branch --show-current`: confirmed session branch name
+  - `go run ./cmd/histkit --help`: attempted a direct smoke check; failed because the default Go build cache path under `/home/opsman/.cache` is not writable here
+  - `git add SESSION.md SESSIONS/042-root-help-refresh.md internal/cli/root.go internal/cli/root_test.go`: staged the session files
+  - `git commit -m "Refresh root help output"`: created the original session commit
+  - `git push -u origin 042-root-help-refresh`: pushed the original branch
+  - `gh repo view --json nameWithOwner,defaultBranchRef`: confirmed PR target metadata
+  - draft PR `#39` was opened and then identified as mixed-scope because the branch was based on unmerged session `041`
+  - `git branch backup/042-root-help-refresh-mixed 042-root-help-refresh`: preserved the mixed-scope branch state locally before rebuilding
+  - `git checkout main`: returned to the default branch
+  - `git checkout -B 042-root-help-refresh main`: rebuilt the session branch on top of `main`
+  - `git cherry-pick 5ec0979`: reapplied the root-help commit onto the clean branch base and resolved the `SESSION.md` conflict
+- tests:
+  - added: none; existing root help coverage was expanded rather than adding a new test function
+  - changed: `TestExecuteHelp`
+  - run:
+    - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
+    - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
+  - skipped: none
+  - failing: none
+- decisions:
+  - use current README language only as a source for accurate short-form CLI wording, not as a prompt to widen this slice into a docs rewrite
+  - keep the root workflow summary short and linear so the terminal help output stays scannable
+  - rebuild the branch on top of `main` after discovering that the first draft PR unintentionally included unmerged `041` commits
+- assumptions:
+  - `NON-BLOCKING`: root help may summarize the safe workflow briefly without enumerating every command example; safe because this changes wording only and can be revised at low cost if the phrasing proves too dense
+- unresolved questions:
+  - none currently recorded
+- next step: finish the clean-branch publish flow and proceed to slice `043-command-help-detail`
+
 ## End-of-session notes
 
 Summary:
 
-- Release-readiness review found one remaining user-facing coherence gap: the shipped example config omitted the `[snippets]` section that the README and current defaults document.
-- `configs/config.example.toml` now includes the snippet defaults, and config tests now assert the example file contents directly so this surface cannot silently drift.
-- Full repository verification passed after the fix, supporting Milestone 5 closeout.
-
-Files changed:
-
-- SESSION.md
-- configs/config.example.toml
-- internal/config/config_test.go
-- SESSIONS/037-release-readiness-pass.md
-
-Files read:
-
-- AGENTS.md
-- SESSION.md
-- ROADMAP.md
-- SKILLS/testing.md
-- README.md
-- docs/histkit-implementation-plan.md
-- SESSIONS/034-doctor-systemd-checks.md
-- SESSIONS/035-shell-wrapper-polish.md
-- SESSIONS/036-readme-usage-flow.md
-- internal/cli/doctor.go
-- internal/doctor/checks.go
-- contrib/histkit.bash
-- contrib/histkit.zsh
-- contrib/histkit-scan.service
-- contrib/histkit-scan.timer
-- configs/config.example.toml
-- contrib/systemd_units_test.go
-- contrib/wrappers_test.go
-- internal/cli/root_test.go
-- internal/cli/pick_test.go
-- internal/config/config.go
-- internal/config/config_test.go
-
-Tests added:
-
-- No new test files. `TestLoadExampleConfig` now validates the example config content directly, including the `[snippets]` section and default values.
+- `histkit --help` now explains histkit as a CLI for history hygiene, reusable snippets, and fuzzy command recall instead of using the older one-line summary.
+- Root help now states the key separation between raw shell history, the local history index, and snippets, and it includes a concise safe-workflow line.
+- Command descriptions in the root help output are more specific, and the help guidance now points users to both `histkit help <command>` and `histkit <command> --help`.
+- Root help coverage was tightened so the updated summary, workflow, and command descriptions are asserted directly.
+- The session branch had to be rebuilt on top of `main` after the first draft PR showed mixed scope from unmerged slice `041`.
 
 Tests run:
 
-- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./internal/config`
-- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./...`
+- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
+- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
 
 Known failures:
 
 - No repository test failures.
-- Repo-local Go cache directories were required again because the default Go cache locations under `/home/opsman` remain unwritable in this environment.
-
-Decisions made:
-
-- Treat the shipped example config as a release-facing artifact that must match both the README and `config.Default()`.
-- Resolve the Milestone 5 release-readiness gap with a minimal config-example and test change rather than broad documentation or CLI churn.
-
-Commands run:
-
-- `git status --short --branch`
-- `sed -n '1,260p' SESSION.md`
-- `sed -n '1,260p' ROADMAP.md`
-- `sed -n '1,220p' SKILLS/testing.md`
-- `rg -n "037-release-readiness-pass|release-readiness|Milestone 5" -S README.md docs SESSION.md SESSIONS`
-- `git checkout -b 037-release-readiness-pass`
-- `sed -n '840,940p' docs/histkit-implementation-plan.md`
-- `sed -n '1,220p' SESSIONS/034-doctor-systemd-checks.md`
-- `sed -n '1,220p' SESSIONS/035-shell-wrapper-polish.md`
-- `sed -n '1,220p' SESSIONS/036-readme-usage-flow.md`
-- `sed -n '1,260p' README.md`
-- `sed -n '1,260p' internal/cli/doctor.go`
-- `sed -n '1,260p' internal/doctor/checks.go`
-- `sed -n '1,260p' contrib/histkit.bash`
-- `sed -n '1,260p' contrib/histkit.zsh`
-- `sed -n '1,220p' contrib/histkit-scan.service`
-- `sed -n '1,220p' contrib/histkit-scan.timer`
-- `sed -n '1,120p' configs/config.example.toml`
-- `sed -n '260,460p' README.md`
-- `rg -n "config.example.toml|snippets\\]|snippet|systemd|help restore|restore \\[--config" -S README.md configs internal contrib docs testdata`
-- `sed -n '1,260p' contrib/systemd_units_test.go`
-- `sed -n '1,260p' contrib/wrappers_test.go`
-- `sed -n '1,260p' internal/cli/root_test.go`
-- `sed -n '1,260p' internal/config/config_test.go`
-- `rg -n "config.example.toml|Default\\(|snippets.*builtin|preview_diff|backup_history" internal testdata contrib -S`
-- `sed -n '1,220p' internal/cli/pick_test.go`
-- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./internal/config`
-- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./...`
-- `chmod -R u+w .gocache .gomodcache .gopath 2>/dev/null || true && rm -rf .gocache .gomodcache .gopath`
-
-Assumptions made:
-
-- `NON-BLOCKING`: Treating the README and `config.Default()` as the authoritative current default surface is safe for this slice because both already drive user-visible behavior, and aligning the example file to them is low-risk and reversible.
-
-Risks introduced or reduced:
-
-- Reduced: users no longer receive a shipped example config that omits currently supported snippet defaults.
-- Reduced: example-config drift now has direct test coverage instead of relying on default backfilling to hide omissions.
-- Reduced: Milestone 5 closeout now has a concrete verification pass over docs, wrappers, systemd templates, and config surfaces.
+- A direct `go run ./cmd/histkit --help` smoke check could not use the default Go build cache path because `/home/opsman/.cache` is not writable in this environment.
 
 Next recommended session:
 
-- No further roadmap slice is currently scheduled after `037-release-readiness-pass`; Milestone 5 closeout can proceed through review and merge.
+- `043-command-help-detail`
