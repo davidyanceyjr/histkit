@@ -4,7 +4,7 @@
 
 ID: `035-shell-wrapper-polish`
 
-Status: completed
+Status: review-pending
 
 ## Objective
 
@@ -40,7 +40,7 @@ Implement:
 
 ## Current repo state
 
-Milestone 5 remains in progress. The contributed shell wrappers now keep the original lightweight shell-side model, accept optional custom key bindings, and prepare the Zsh line editor for launching the external picker. The next roadmap slice is `036-readme-usage-flow`.
+Milestone 5 remains in progress. The contributed shell wrappers now keep the original lightweight shell-side model, accept optional custom key bindings, and prepare the Zsh line editor for launching the external picker. Branch `035-shell-wrapper-polish` is pushed and PR `#34` is open for review. The next roadmap slice after review and merge is `036-readme-usage-flow`.
 
 ## Decisions already made
 
@@ -134,6 +134,7 @@ Known failures:
 
 - No test failures.
 - `zsh` is not installed in this environment, so Zsh runtime behavior remains covered by script-structure assertions rather than live widget execution.
+- Session closure is pending human approval, PR merge, and branch cleanup.
 
 Decisions made:
 
@@ -180,6 +181,10 @@ Commands run:
 - `git diff -- contrib/histkit.bash contrib/histkit.zsh contrib/wrappers_test.go README.md`
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
 - `git remote -v`
+- `git add README.md SESSION.md SESSIONS/035-shell-wrapper-polish.md contrib/histkit.bash contrib/histkit.zsh contrib/wrappers_test.go`
+- `git commit -m "Polish shell wrapper bindings"`
+- `git push -u origin 035-shell-wrapper-polish`
+- created draft PR `#34` (`https://github.com/davidyanceyjr/histkit/pull/34`)
 
 Assumptions made:
 
@@ -193,4 +198,5 @@ Risks introduced or reduced:
 
 Next recommended session:
 
+- obtain human review for PR `#34`, then merge and clean up the branch
 - `036-readme-usage-flow`

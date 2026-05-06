@@ -1,6 +1,6 @@
 # 035-shell-wrapper-polish
 
-Status: completed
+Status: review-pending
 
 ## Summary
 
@@ -55,6 +55,7 @@ Completed.
 
 - No test failures.
 - `zsh` is not installed in this environment, so Zsh runtime behavior remains covered by script-structure assertions rather than live widget execution.
+- Session closure is pending human approval, PR merge, and branch cleanup.
 
 ## Commands run
 
@@ -96,6 +97,10 @@ Completed.
 - `env GOCACHE=/home/opsman/project_git/histkit/.cache/go-build GOMODCACHE=/home/opsman/project_git/histkit/.cache/go-mod GOPATH=/home/opsman/project_git/histkit/.cache/go-path go test ./...`
 - `git status --short --branch`
 - `git remote -v`
+- `git add README.md SESSION.md SESSIONS/035-shell-wrapper-polish.md contrib/histkit.bash contrib/histkit.zsh contrib/wrappers_test.go`
+- `git commit -m "Polish shell wrapper bindings"`
+- `git push -u origin 035-shell-wrapper-polish`
+- created draft PR `#34` (`https://github.com/davidyanceyjr/histkit/pull/34`)
 
 ## Decisions made
 
@@ -120,4 +125,5 @@ Completed.
 
 ## Next slice recommendation
 
+- obtain human review for PR `#34`, then merge and clean up the branch
 - `036-readme-usage-flow`
