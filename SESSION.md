@@ -4,7 +4,7 @@
 
 ID: `036-readme-usage-flow`
 
-Status: ready
+Status: in_review
 
 ## Objective
 
@@ -38,7 +38,7 @@ Implement:
 
 ## Current repo state
 
-Milestone 5 remains in progress. Session `035-shell-wrapper-polish` is fully merged in PR `#34`, and branch cleanup is complete locally and remotely. The next roadmap slice is `036-readme-usage-flow`.
+Milestone 5 remains in progress. Branch `036-readme-usage-flow` contains a documentation-only README alignment pass that is ready to be committed, pushed, and reviewed. The next roadmap slice after this review is `037-release-readiness-pass`.
 
 ## Decisions already made
 
@@ -80,55 +80,83 @@ No questions answered this session.
 
 Summary:
 
-- Session `035-shell-wrapper-polish` merged through PR `#34`.
-- Local `main` fast-forwarded to the merge result.
-- Session branch `035-shell-wrapper-polish` deleted locally and on `origin`.
+- README now documents the current conservative workflow as `doctor -> scan -> optional stats/pick -> clean --dry-run -> clean --apply -> restore`.
+- Unsupported README references to future commands and flags were removed.
+- Wrapper, config, restore, and `systemd --user` documentation were tightened to match the current implementation.
 
 Files changed:
 
+- README.md
 - SESSION.md
+- SESSIONS/036-readme-usage-flow.md
 
 Files read:
 
+- AGENTS.md
 - ROADMAP.md
 - README.md
+- SESSION_PROMPT.md
 - docs/histkit-implementation-plan.md
+- DECISIONS.md
+- RISKS.md
+- SKILLS/testing.md
+- internal/cli/root.go
+- internal/cli/scan.go
+- internal/cli/clean.go
+- internal/cli/pick.go
+- internal/cli/doctor.go
+- internal/cli/stats.go
+- internal/cli/restore.go
+- internal/config/config.go
+- internal/doctor/checks.go
+- internal/sanitize/apply.go
+- internal/sanitize/quarantine.go
+- internal/audit/log.go
+- internal/backup/model.go
+- cmd/histkit/main.go
+- contrib/histkit-scan.service
+- contrib/histkit-scan.timer
+- contrib/histkit.bash
+- contrib/histkit.zsh
+- configs/config.example.toml
+- SESSIONS/034-doctor-systemd-checks.md
+- SESSIONS/035-shell-wrapper-polish.md
 
 Tests added:
 
-- None yet for `036-readme-usage-flow`.
+- None. This was a documentation-only slice.
 
 Tests run:
 
-- None yet for `036-readme-usage-flow`.
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./...`
 
 Known failures:
 
-- None currently recorded for `036-readme-usage-flow`.
+- No repository test failures.
+- Initial `go test ./...` and `go run ./cmd/histkit help` attempts failed because the default Go cache locations under `/home/opsman` were read-only in this environment; rerunning with repo-local caches succeeded.
 
 Decisions made:
 
-- Start the next slice from README workflow coherence before release-readiness work.
+- Keep the README limited to implemented commands and flags.
+- Present `clean --apply` as a reviewed explicit step, not a default or automated behavior.
+- Keep automation documentation focused on the shipped scan-only `systemd --user` units.
 
 Commands run:
 
-- `gh pr ready 34 --repo davidyanceyjr/histkit`
-- `gh pr view 34 --repo davidyanceyjr/histkit --json isDraft,mergeStateStatus,url`
-- `gh pr merge 34 --repo davidyanceyjr/histkit --merge`
-- `gh pr view 34 --repo davidyanceyjr/histkit --json state,mergedAt,url`
-- `git checkout main`
-- `git pull --ff-only origin main`
-- `git push origin --delete 035-shell-wrapper-polish`
-- `git branch -d 035-shell-wrapper-polish`
+- `git checkout -b 036-readme-usage-flow`
+- `go run ./cmd/histkit help`
+- `go run ./cmd/histkit help clean`
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./...`
 
 Assumptions made:
 
-- `036-readme-usage-flow` can proceed as a documentation-focused slice without loading unrelated implementation skills.
+- `NON-BLOCKING`: README examples can use a representative implemented backup ID format because the format is already defined in the backup model and is easy to update later if needed.
 
 Risks introduced or reduced:
 
-- Reduced: the repository is back on `main` with the completed wrapper slice merged and cleanup finished.
+- Reduced: README drift against the actual command surface, flags, and automation posture.
+- Reduced: risk of users inferring unattended destructive cleanup from the shipped systemd automation docs.
 
 Next recommended session:
 
-- `036-readme-usage-flow`
+- `037-release-readiness-pass` after `036-readme-usage-flow` is reviewed and merged.
