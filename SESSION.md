@@ -2,28 +2,28 @@
 
 ## Current session
 
-ID: `036-readme-usage-flow`
+ID: `037-release-readiness-pass`
 
 Status: in_review
 
 ## Objective
 
-Tighten the README’s end-to-end usage flow so the documented `histkit` workflow is conservative, easy to follow, and aligned with the current command set and automation posture.
+Run a Milestone 5 release-readiness pass that verifies the shipped automation, wrapper, doctor, and documentation surfaces remain coherent with the implemented command set, and fix only the smallest remaining release-blocking polish gaps.
 
 ## Scope
 
 Implement:
 
-- README flow improvements around `scan`, `doctor`, `clean --dry-run`, `clean --apply`, `restore`, and optional automation
-- consistency fixes where command ordering or wording obscures the intended safe workflow
-- documentation-only validation needed to keep the repo coherent after the wrapper and systemd slices
+- verify Milestone 5 surfaces against the current implementation: README, `configs/config.example.toml`, contributed wrappers, contributed `systemd --user` units, and relevant help text
+- add or tighten lightweight verification where a release-readiness mismatch can otherwise drift silently
+- run the most relevant tests for the touched surfaces and a full repository verification pass if the slice remains small
 
 ## Out of scope
 
-- command behavior changes
-- new automation features
+- new command behavior or automation features
 - release packaging or distribution changes
 - destructive-history behavior changes
+- broad rewrites outside the identified release-readiness gap
 
 ## Relevant skills
 
@@ -31,14 +31,13 @@ Implement:
 
 ## Acceptance criteria
 
-- the README presents a clear conservative workflow from scan through restore
-- wrapper, doctor, and optional systemd automation documentation remain consistent
-- examples do not imply unattended destructive cleanup by default
-- any documentation-only checks run for the slice are recorded in the session artifact
+- Milestone 5 user-facing artifacts match the implemented command surface and defaults
+- any remaining release blocker is explicitly recorded if it cannot be safely resolved in-slice
+- verification for the touched release-readiness surface is recorded in the session artifact
 
 ## Current repo state
 
-Milestone 5 remains in progress. Branch `036-readme-usage-flow` has been pushed and is under review in draft PR `#35`. The next roadmap slice after this review is `037-release-readiness-pass`.
+Session `036-readme-usage-flow` is merged through PR `#35`, branch cleanup is complete, and local `main` is clean and up to date. Branch `037-release-readiness-pass` is active for the final Milestone 5 closeout slice.
 
 ## Decisions already made
 
@@ -53,8 +52,9 @@ Milestone 5 remains in progress. Branch `036-readme-usage-flow` has been pushed 
 
 ## Risks to watch
 
-- README guidance must not overstate automation maturity or imply destructive defaults.
-- Documentation should stay aligned with implemented commands instead of describing future behavior as current.
+- Release-facing examples must not drift from the implemented defaults or supported flags.
+- Documentation and shipped templates must not imply unattended destructive cleanup.
+- The final Milestone 5 closeout must avoid expanding into feature work beyond the smallest coherence fix.
 
 ## Open questions
 
@@ -80,97 +80,103 @@ No questions answered this session.
 
 Summary:
 
-- README now documents the current conservative workflow as `doctor -> scan -> optional stats/pick -> clean --dry-run -> clean --apply -> restore`.
-- Unsupported README references to future commands and flags were removed.
-- Wrapper, config, restore, and `systemd --user` documentation were tightened to match the current implementation.
-- Restore usage documentation and built-in help now require flags before the positional backup ID, matching the current Go flag parsing behavior.
+- Release-readiness review found one remaining user-facing coherence gap: the shipped example config omitted the `[snippets]` section that the README and current defaults document.
+- `configs/config.example.toml` now includes the snippet defaults, and config tests now assert the example file contents directly so this surface cannot silently drift.
+- Full repository verification passed after the fix, supporting Milestone 5 closeout.
 
 Files changed:
 
-- README.md
-- internal/cli/restore.go
 - SESSION.md
-- SESSIONS/036-readme-usage-flow.md
+- configs/config.example.toml
+- internal/config/config_test.go
+- SESSIONS/037-release-readiness-pass.md
 
 Files read:
 
 - AGENTS.md
+- SESSION.md
 - ROADMAP.md
-- README.md
-- SESSION_PROMPT.md
-- docs/histkit-implementation-plan.md
-- DECISIONS.md
-- RISKS.md
 - SKILLS/testing.md
-- internal/cli/root.go
-- internal/cli/scan.go
-- internal/cli/clean.go
-- internal/cli/pick.go
-- internal/cli/doctor.go
-- internal/cli/stats.go
-- internal/cli/restore.go
-- internal/config/config.go
-- internal/doctor/checks.go
-- internal/sanitize/apply.go
-- internal/sanitize/quarantine.go
-- internal/audit/log.go
-- internal/backup/model.go
-- cmd/histkit/main.go
-- contrib/histkit-scan.service
-- contrib/histkit-scan.timer
-- contrib/histkit.bash
-- contrib/histkit.zsh
-- configs/config.example.toml
+- README.md
+- docs/histkit-implementation-plan.md
 - SESSIONS/034-doctor-systemd-checks.md
 - SESSIONS/035-shell-wrapper-polish.md
+- SESSIONS/036-readme-usage-flow.md
+- internal/cli/doctor.go
+- internal/doctor/checks.go
+- contrib/histkit.bash
+- contrib/histkit.zsh
+- contrib/histkit-scan.service
+- contrib/histkit-scan.timer
+- configs/config.example.toml
+- contrib/systemd_units_test.go
+- contrib/wrappers_test.go
+- internal/cli/root_test.go
+- internal/cli/pick_test.go
+- internal/config/config.go
+- internal/config/config_test.go
 
 Tests added:
 
-- None. This was a documentation-only slice.
+- No new test files. `TestLoadExampleConfig` now validates the example config content directly, including the `[snippets]` section and default values.
 
 Tests run:
 
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./internal/config`
 - `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./...`
-- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./internal/cli`
-- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go run ./cmd/histkit help restore`
 
 Known failures:
 
 - No repository test failures.
-- Initial `go test ./...` and `go run ./cmd/histkit help` attempts failed because the default Go cache locations under `/home/opsman` were read-only in this environment; rerunning with repo-local caches succeeded.
+- Repo-local Go cache directories were required again because the default Go cache locations under `/home/opsman` remain unwritable in this environment.
 
 Decisions made:
 
-- Keep the README limited to implemented commands and flags.
-- Present `clean --apply` as a reviewed explicit step, not a default or automated behavior.
-- Keep automation documentation focused on the shipped scan-only `systemd --user` units.
-- Resolve the restore argument-order review finding by changing docs and help text, not by changing parser behavior in this documentation slice.
+- Treat the shipped example config as a release-facing artifact that must match both the README and `config.Default()`.
+- Resolve the Milestone 5 release-readiness gap with a minimal config-example and test change rather than broad documentation or CLI churn.
 
 Commands run:
 
-- `git checkout -b 036-readme-usage-flow`
-- `go run ./cmd/histkit help`
-- `go run ./cmd/histkit help clean`
+- `git status --short --branch`
+- `sed -n '1,260p' SESSION.md`
+- `sed -n '1,260p' ROADMAP.md`
+- `sed -n '1,220p' SKILLS/testing.md`
+- `rg -n "037-release-readiness-pass|release-readiness|Milestone 5" -S README.md docs SESSION.md SESSIONS`
+- `git checkout -b 037-release-readiness-pass`
+- `sed -n '840,940p' docs/histkit-implementation-plan.md`
+- `sed -n '1,220p' SESSIONS/034-doctor-systemd-checks.md`
+- `sed -n '1,220p' SESSIONS/035-shell-wrapper-polish.md`
+- `sed -n '1,220p' SESSIONS/036-readme-usage-flow.md`
+- `sed -n '1,260p' README.md`
+- `sed -n '1,260p' internal/cli/doctor.go`
+- `sed -n '1,260p' internal/doctor/checks.go`
+- `sed -n '1,260p' contrib/histkit.bash`
+- `sed -n '1,260p' contrib/histkit.zsh`
+- `sed -n '1,220p' contrib/histkit-scan.service`
+- `sed -n '1,220p' contrib/histkit-scan.timer`
+- `sed -n '1,120p' configs/config.example.toml`
+- `sed -n '260,460p' README.md`
+- `rg -n "config.example.toml|snippets\\]|snippet|systemd|help restore|restore \\[--config" -S README.md configs internal contrib docs testdata`
+- `sed -n '1,260p' contrib/systemd_units_test.go`
+- `sed -n '1,260p' contrib/wrappers_test.go`
+- `sed -n '1,260p' internal/cli/root_test.go`
+- `sed -n '1,260p' internal/config/config_test.go`
+- `rg -n "config.example.toml|Default\\(|snippets.*builtin|preview_diff|backup_history" internal testdata contrib -S`
+- `sed -n '1,220p' internal/cli/pick_test.go`
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./internal/config`
 - `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./...`
-- `git add README.md SESSION.md SESSIONS/036-readme-usage-flow.md`
-- `git commit -m "Tighten README usage flow"`
-- `git push -u origin 036-readme-usage-flow`
-- created draft PR `#35` (`https://github.com/davidyanceyjr/histkit/pull/35`)
-- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./internal/cli`
-- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go run ./cmd/histkit help restore`
-- `rm -rf .gocache .gomodcache .gopath`
-- `chmod -R u+w .gomodcache && rm -rf .gomodcache`
+- `chmod -R u+w .gocache .gomodcache .gopath 2>/dev/null || true && rm -rf .gocache .gomodcache .gopath`
 
 Assumptions made:
 
-- `NON-BLOCKING`: README examples can use a representative implemented backup ID format because the format is already defined in the backup model and is easy to update later if needed.
+- `NON-BLOCKING`: Treating the README and `config.Default()` as the authoritative current default surface is safe for this slice because both already drive user-visible behavior, and aligning the example file to them is low-risk and reversible.
 
 Risks introduced or reduced:
 
-- Reduced: README drift against the actual command surface, flags, and automation posture.
-- Reduced: risk of users inferring unattended destructive cleanup from the shipped systemd automation docs.
-- Reduced: restore usage examples and command help no longer imply a flag ordering that the current CLI rejects.
+- Reduced: users no longer receive a shipped example config that omits currently supported snippet defaults.
+- Reduced: example-config drift now has direct test coverage instead of relying on default backfilling to hide omissions.
+- Reduced: Milestone 5 closeout now has a concrete verification pass over docs, wrappers, systemd templates, and config surfaces.
 
 Next recommended session:
 
-- `037-release-readiness-pass` after `036-readme-usage-flow` is reviewed and merged.
+- No further roadmap slice is currently scheduled after `037-release-readiness-pass`; Milestone 5 closeout can proceed through review and merge.
