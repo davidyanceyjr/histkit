@@ -11,5 +11,7 @@ __histkit_pick_bash() {
 }
 
 histkit_bind_bash_pick() {
-  bind -x '"\C-r":"__histkit_pick_bash"'
+  local keyseq
+  keyseq="${1:-\C-r}"
+  bind -x "\"$keyseq\":\"__histkit_pick_bash\""
 }

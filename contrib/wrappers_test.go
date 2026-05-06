@@ -85,6 +85,54 @@ printf '%s\n%s\n' "$READLINE_LINE" "$READLINE_POINT"
 	}
 }
 
+func TestBashBindHelperDefaultsToControlR(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell wrapper tests require a Unix shell")
+	}
+
+	scriptPath := filepath.Join(repoRoot(t), "contrib", "histkit.bash")
+	cmd := exec.Command("bash", "-c", `
+source "$SCRIPT_PATH"
+histkit_bind_bash_pick
+bind -X
+`)
+	cmd.Env = append(os.Environ(), "SCRIPT_PATH="+scriptPath)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bash bind helper failed: %v\n%s", err, output)
+	}
+
+	if !strings.Contains(string(output), `"\\C-r" "__histkit_pick_bash"`) &&
+		!strings.Contains(string(output), "\"\\C-r\" \"__histkit_pick_bash\"") {
+		t.Fatalf("default bash binding missing Ctrl-R: %s", output)
+	}
+}
+
+func TestBashBindHelperAcceptsCustomKeySequence(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell wrapper tests require a Unix shell")
+	}
+
+	scriptPath := filepath.Join(repoRoot(t), "contrib", "histkit.bash")
+	cmd := exec.Command("bash", "-c", `
+source "$SCRIPT_PATH"
+histkit_bind_bash_pick '\C-x\C-r'
+bind -X
+`)
+	cmd.Env = append(os.Environ(), "SCRIPT_PATH="+scriptPath)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bash bind helper failed: %v\n%s", err, output)
+	}
+
+	if !strings.Contains(string(output), `"\\C-x\\C-r" "__histkit_pick_bash"`) &&
+		!strings.Contains(string(output), "\"\\C-x\\C-r\" \"__histkit_pick_bash\"") {
+		t.Fatalf("custom bash binding missing Ctrl-X Ctrl-R: %s", output)
+	}
+}
+
 func TestZshWrapperScriptContainsBindingHelper(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join(repoRoot(t), "contrib", "histkit.zsh"))
 	if err != nil {
@@ -94,11 +142,13 @@ func TestZshWrapperScriptContainsBindingHelper(t *testing.T) {
 	text := string(content)
 	for _, want := range []string{
 		"histkit_pick_zsh()",
+		"zle -I",
 		`selected="$(histkit pick "$@")"`,
 		"BUFFER=\"$selected\"",
 		"CURSOR=${#BUFFER}",
 		"zle -N histkit_pick_zsh",
-		"bindkey '^R' histkit_pick_zsh",
+		`keyseq="${1:-^R}"`,
+		`bindkey "$keyseq" histkit_pick_zsh`,
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("zsh wrapper missing %q", want)
