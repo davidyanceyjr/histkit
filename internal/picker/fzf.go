@@ -5,9 +5,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
+
+var openTTY = func() (*os.File, error) {
+	return os.OpenFile("/dev/tty", os.O_RDWR, 0)
+}
 
 func Select(ctx context.Context, candidates []Candidate) (Candidate, bool, error) {
 	if len(candidates) == 0 {
@@ -31,6 +37,12 @@ func Select(ctx context.Context, candidates []Candidate) (Candidate, bool, error
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+
+	tty, err := openTTY()
+	if err == nil {
+		defer tty.Close()
+		cmd.Stderr = io.MultiWriter(&stderr, tty)
+	}
 
 	if err := cmd.Run(); err != nil {
 		if isNoSelection(err) {
