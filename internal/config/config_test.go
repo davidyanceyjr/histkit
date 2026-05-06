@@ -96,6 +96,26 @@ user_file = "~/custom-snippets.toml"
 func TestLoadExampleConfig(t *testing.T) {
 	path := filepath.Join("..", "..", "configs", "config.example.toml")
 
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("ReadFile returned error: %v", err)
+	}
+	for _, want := range []string{
+		"[general]",
+		"default_shell = \"bash\"",
+		"backup_history = true",
+		"dry_run = true",
+		"preview_diff = true",
+		"[snippets]",
+		"enabled = true",
+		"builtin = true",
+		"user_file = \"~/.local/share/histkit/snippets.toml\"",
+	} {
+		if !strings.Contains(string(content), want) {
+			t.Fatalf("example config missing %q:\n%s", want, content)
+		}
+	}
+
 	cfg, err := Load(path)
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
