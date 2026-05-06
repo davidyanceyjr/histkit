@@ -20,16 +20,12 @@ func TestExecuteStatsHelp(t *testing.T) {
 	}
 
 	output := stdout.String()
-	for _, want := range []string{
+	assertHelpContains(t, output,
 		"Usage:\n  histkit stats [--config <path>]",
 		"stats reports what has already been indexed.",
 		"It does not rescan history files or modify them.",
 		"--config <path>   load a specific histkit config file before reading stats",
-	} {
-		if !strings.Contains(output, want) {
-			t.Fatalf("expected stats help to contain %q, got %q", want, output)
-		}
-	}
+	)
 }
 
 func TestExecuteStatsEmptyIndex(t *testing.T) {

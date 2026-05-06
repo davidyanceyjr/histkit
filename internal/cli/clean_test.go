@@ -22,17 +22,13 @@ func TestExecuteCleanHelp(t *testing.T) {
 	}
 
 	output := stdout.String()
-	for _, want := range []string{
+	assertHelpContains(t, output,
 		"Usage:\n  histkit clean [--apply] [--dry-run] [--shell <shell>] [--config <path>]",
 		"Without --apply, clean runs in preview mode and prints the planned actions without changing history files.",
 		"--apply rewrites matching history sources, creates backups, and appends an audit record.",
 		"--dry-run         render the cleanup preview explicitly without changing files",
 		"--apply           rewrite matching history files; requires backup_history=true",
-	} {
-		if !strings.Contains(output, want) {
-			t.Fatalf("expected clean help to contain %q, got %q", want, output)
-		}
-	}
+	)
 }
 
 func TestExecuteCleanDryRunOutputsPreviewWithoutMutatingHistory(t *testing.T) {

@@ -47,16 +47,31 @@ func runRestore(args []string, stdout io.Writer) error {
 }
 
 func writeRestoreUsage(w io.Writer) {
-	fmt.Fprintln(w, "Usage:")
-	fmt.Fprintln(w, "  histkit restore [--config <path>] [backup-id]")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "List recorded backups or restore a specific backup by identifier.")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Without a backup ID, restore lists the backups available under the histkit state directory.")
-	fmt.Fprintln(w, "With a backup ID, restore replaces the source history file from that backup and appends an audit record.")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Flags:")
-	fmt.Fprintln(w, "  --config <path>   load a specific histkit config file before listing or restoring backups")
+	writeHelpBlocks(w,
+		helpBlock{
+			Title: "Usage",
+			Lines: []string{
+				"  histkit restore [--config <path>] [backup-id]",
+			},
+		},
+		helpBlock{
+			Lines: []string{
+				"List recorded backups or restore a specific backup by identifier.",
+			},
+		},
+		helpBlock{
+			Lines: []string{
+				"Without a backup ID, restore lists the backups available under the histkit state directory.",
+				"With a backup ID, restore replaces the source history file from that backup and appends an audit record.",
+			},
+		},
+		helpBlock{
+			Title: "Flags",
+			Lines: []string{
+				"  --config <path>   load a specific histkit config file before listing or restoring backups",
+			},
+		},
+	)
 }
 
 type restoreOptions struct {

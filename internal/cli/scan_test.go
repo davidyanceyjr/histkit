@@ -23,17 +23,13 @@ func TestExecuteScanHelp(t *testing.T) {
 	}
 
 	output := stdout.String()
-	for _, want := range []string{
+	assertHelpContains(t, output,
 		"Usage:\n  histkit scan [--shell <shell>] [--config <path>]",
 		"scan reads supported history files and writes normalized entries into the local index.",
 		"It does not rewrite shell history.",
 		"--shell <shell>   scan only one supported shell source (bash or zsh)",
 		"--config <path>   load a specific histkit config file before scanning",
-	} {
-		if !strings.Contains(output, want) {
-			t.Fatalf("expected scan help to contain %q, got %q", want, output)
-		}
-	}
+	)
 }
 
 func TestExecuteScanIndexesBashHistory(t *testing.T) {
