@@ -182,3 +182,30 @@ func TestParserForShellRejectsUnsupportedShell(t *testing.T) {
 		t.Fatal("ParserForShell returned nil error for unsupported shell")
 	}
 }
+
+func TestStreamParserForShell(t *testing.T) {
+	tests := []struct {
+		shell string
+	}{
+		{shell: ShellBash},
+		{shell: ShellZsh},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.shell, func(t *testing.T) {
+			parser, err := StreamParserForShell(tc.shell)
+			if err != nil {
+				t.Fatalf("StreamParserForShell returned error: %v", err)
+			}
+			if parser == nil {
+				t.Fatal("StreamParserForShell returned nil parser")
+			}
+		})
+	}
+}
+
+func TestStreamParserForShellRejectsUnsupportedShell(t *testing.T) {
+	if _, err := StreamParserForShell("fish"); err == nil {
+		t.Fatal("StreamParserForShell returned nil error for unsupported shell")
+	}
+}

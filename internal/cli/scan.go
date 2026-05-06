@@ -80,6 +80,8 @@ type scanSummary struct {
 	Skipped   int
 }
 
+const scanWriteBatchSize = 1000
+
 func executeScan(stdout io.Writer, opts scanOptions) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -118,7 +120,7 @@ func executeScan(stdout io.Writer, opts scanOptions) error {
 
 	summary := scanSummary{Sources: len(sources)}
 	for _, source := range sources {
-		parser, err := history.ParserForShell(source.Shell)
+		parser, err := history.StreamParserForShell(source.Shell)
 		if err != nil {
 			return fmt.Errorf("scan: %w", err)
 		}
@@ -128,7 +130,39 @@ func executeScan(stdout io.Writer, opts scanOptions) error {
 			return fmt.Errorf("scan: open history source %q: %w", source.Path, err)
 		}
 
-		entries, warnings, parseErr := parser(source.Path, file)
+		batch := make([]history.HistoryEntry, 0, scanWriteBatchSize)
+		flushBatch := func() error {
+			if len(batch) == 0 {
+				return nil
+			}
+
+			result, err := index.WriteHistoryEntries(db, batch)
+			if err != nil {
+				return err
+			}
+
+			summary.Attempted += result.Attempted
+			summary.Inserted += result.Inserted
+			summary.Skipped += result.Skipped
+			batch = batch[:0]
+			return nil
+		}
+
+		parseErr := parser(
+			source.Path,
+			file,
+			func(entry history.HistoryEntry) error {
+				batch = append(batch, entry)
+				if len(batch) < scanWriteBatchSize {
+					return nil
+				}
+				return flushBatch()
+			},
+			func(warning history.ParseWarning) error {
+				summary.Warnings++
+				return nil
+			},
+		)
 		closeErr := file.Close()
 		if parseErr != nil {
 			return fmt.Errorf("scan: %w", parseErr)
@@ -136,16 +170,9 @@ func executeScan(stdout io.Writer, opts scanOptions) error {
 		if closeErr != nil {
 			return fmt.Errorf("scan: close history source %q: %w", source.Path, closeErr)
 		}
-
-		result, err := index.WriteHistoryEntries(db, entries)
-		if err != nil {
+		if err := flushBatch(); err != nil {
 			return fmt.Errorf("scan: %w", err)
 		}
-
-		summary.Warnings += len(warnings)
-		summary.Attempted += result.Attempted
-		summary.Inserted += result.Inserted
-		summary.Skipped += result.Skipped
 	}
 
 	fmt.Fprintf(
