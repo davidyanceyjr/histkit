@@ -2,28 +2,29 @@
 
 ## Current session
 
-ID: `045-pick-debug-diagnostics`
+ID: `047-pick-fzf-tty-wiring`
 
 Status: completed
 
 ## Objective
 
-Add opt-in diagnostics for `histkit pick` so a user can identify whether the command is stalling before database access, candidate loading, or `fzf` launch.
+Make `histkit pick` mirror `fzf` interactive output to the controlling terminal while preserving stdout capture for the selected command.
 
 ## Scope
 
 Implement:
 
-- add a `pick` debug flag that emits progress diagnostics to stderr
-- keep normal `pick` behavior unchanged when debug is disabled
-- cover the new diagnostics path with deterministic CLI tests
+- update `internal/picker/fzf.go` so `fzf` stderr is mirrored to the controlling TTY when available
+- preserve the existing picker contract: selected command returned to stdout, no shell-history mutation, no snippet expansion
+- extend picker tests to cover TTY mirroring and fallback behavior without requiring a real interactive terminal
+- carry the uncommitted `046` planning artifacts forward in this slice
 
 ## Out of scope
 
 - changing picker candidate semantics
-- changing `fzf` terminal wiring
-- adding SQLite lock timeouts or retries
-- changing scan, stats, or doctor behavior
+- changing shell wrapper behavior in `contrib/`
+- changing SQLite behavior, retries, or lock handling
+- broad CLI debug infrastructure beyond the existing `pick --debug`
 - README or broader documentation updates
 
 ## Relevant skills
@@ -33,13 +34,13 @@ Implement:
 
 ## Acceptance criteria
 
-- `histkit pick --debug` emits stage-level diagnostics before `fzf` launches
-- standard `histkit pick` remains silent on stderr during successful runs
-- CLI tests cover the debug flag and still pass
+- interactive `fzf` output is no longer confined to an internal stderr buffer when a controlling TTY is available
+- `histkit pick` still returns the selected command cleanly on stdout
+- picker tests cover success, abort, missing `fzf`, tty mirroring, and no-tty fallback behavior
 
 ## Current repo state
 
-Branch `045-pick-debug-diagnostics` contains the completed `pick` diagnostics slice and is ready for staging, publish, and merge workflow.
+Branch `047-pick-fzf-tty-wiring` contains the completed `fzf` TTY-wiring slice and the carried-forward `046` planning artifacts. An unrelated untracked file `1` exists in the worktree and was left untouched.
 
 ## Decisions already made
 
@@ -51,11 +52,12 @@ Branch `045-pick-debug-diagnostics` contains the completed `pick` diagnostics sl
 - `systemd --user` is the automation target
 - Default automation runs `scan`, not destructive apply
 - Wrapper logic stays outside the Go binary under `contrib/`
+- `pick --debug` remains the existing diagnostic path for identifying pre- and post-`fzf` boundaries
 
 ## Risks to watch
 
-- Debug output is written to stderr only when explicitly enabled and must stay off the normal `pick` path.
-- The diagnostics identify the blocking stage but do not yet change SQLite lock behavior or provide automatic recovery.
+- The current fix mirrors `fzf` stderr to the controlling TTY but still feeds candidates through stdin; if a specific environment needs stronger TTY ownership than stderr mirroring, a follow-up slice may still be required.
+- Tests validate the launch seam with fake scripts and fake TTY files, not a full interactive terminal session.
 
 ## Open questions
 
@@ -75,90 +77,74 @@ Every answered question must be recorded here before it is removed from the acti
 
 ### Answered this session
 
-No questions answered this session.
+- Question: Should the implementation prefer inheriting parent stdio directly or opening `/dev/tty` explicitly for `fzf`?
+  - Answer: Open `/dev/tty` explicitly and mirror `fzf` stderr to it while keeping stdout buffered for the selected command.
+  - Source: `047-pick-fzf-tty-wiring` implementation in `internal/picker/fzf.go`
 
 ## Working state
 
-- intent: add opt-in `histkit pick` diagnostics to identify the pre-`fzf` blocking stage
-- scope: `internal/cli/{root,pick}.go`, `internal/cli/pick_test.go`, `SESSION.md`, and `SESSIONS/045-pick-debug-diagnostics.md`
-- constraints: preserve non-destructive behavior, keep normal `pick` stderr silent, avoid picker rewrites, avoid touching shell-history mutation paths
+- intent: make `histkit pick` show `fzf` interactive output through the controlling terminal without breaking selected-command stdout capture
+- scope: `internal/picker/fzf.go`, `internal/picker/fzf_test.go`, `SESSION.md`, `SESSIONS/046-pick-fzf-tty-wiring-plan.md`, and `SESSIONS/047-pick-fzf-tty-wiring.md`
+- constraints: preserve non-destructive behavior, keep selected-command stdout contract intact, avoid shell-history mutation, avoid broad picker rewrites, leave unrelated untracked file `1` untouched
 - files read:
-  - `AGENTS.md`: required workflow, session-record rules, and publish expectations
-  - `SESSION.md`: prior session state and structured working-state format
-  - `ROADMAP.md`: roadmap boundaries and slice naming
-  - `SKILLS/go-cli.md`: CLI implementation constraints
-  - `SKILLS/testing.md`: test expectations
-  - `internal/cli/root.go`: command dispatch path that needed stderr plumbing for `pick`
-  - `internal/cli/pick.go`: current `pick` flag parsing and runtime sequence
-  - `internal/cli/pick_test.go`: existing `pick` behavior and help coverage
-  - `internal/picker/fzf.go`: confirmed `fzf` launch happens after candidate loading
-  - `internal/picker/candidates.go`: confirmed candidate loading is the pre-`fzf` boundary
-  - `internal/index/schema.go`: reviewed SQLite open and schema init path
-  - `internal/index/picker.go`: reviewed recent-history query used by `pick`
-  - `internal/snippets/store.go`: reviewed snippet store reads in the pre-`fzf` path
-  - `SESSIONS/000-template.md`: session note template
-  - `/home/opsman/.codex/plugins/cache/openai-curated/github/9d07fd08/skills/yeet/SKILL.md`: publish workflow requirements
+  - `AGENTS.md`: required workflow, session-record rules, and open-question protocol
+  - `SESSION.md`: carried-forward planning context and implementation target
+  - `ROADMAP.md`: roadmap boundaries for `pick`
+  - `SKILLS/go-cli.md`: CLI constraints relevant to keeping picker behavior narrow
+  - `SKILLS/testing.md`: test expectations and deterministic-fixture requirements
+  - `internal/picker/fzf.go`: current buffered `fzf` launch implementation
+  - `internal/picker/fzf_test.go`: existing picker tests and fake `fzf` seam
 - files changed:
-  - `internal/cli/root.go`: passed stderr into `pick` command execution
-  - `internal/cli/pick.go`: added `--debug` flag and stage/timing diagnostics for the pre-`fzf` path plus selection outcome logging
-  - `internal/cli/pick_test.go`: covered debug flag help text and stderr diagnostics while preserving normal behavior assertions
-  - `SESSION.md`: recorded the active and completed session state for slice 045
-  - `SESSIONS/045-pick-debug-diagnostics.md`: recorded the completed session
+  - `internal/picker/fzf.go`: mirrored `fzf` stderr to `/dev/tty` when available while preserving buffered stderr capture for error reporting
+  - `internal/picker/fzf_test.go`: added fake-TTY coverage and no-TTY fallback assertions; updated existing selection/abort tests to use the new seam
+  - `SESSION.md`: recorded the completed session state for slice 047
+  - `SESSIONS/046-pick-fzf-tty-wiring-plan.md`: carried forward the planning note created in the prior uncommitted slice
+  - `SESSIONS/047-pick-fzf-tty-wiring.md`: recorded the completed implementation session
 - commands run:
-  - `sed -n '1,260p' SESSION.md`: read prior session context
-  - `sed -n '1,220p' ROADMAP.md`: confirmed roadmap boundaries and slice naming
-  - `sed -n '1,220p' SKILLS/go-cli.md`: loaded CLI implementation constraints
-  - `sed -n '1,220p' SKILLS/testing.md`: loaded test expectations
-  - `git status --short --branch`: confirmed clean starting state on `main`
-  - `git checkout -b 045-pick-debug-diagnostics`: created the session branch
-  - `sed -n '1,260p' /home/opsman/.codex/plugins/cache/openai-curated/github/9d07fd08/skills/yeet/SKILL.md`: loaded publish workflow instructions
-  - `sed -n '1,260p' internal/cli/pick.go`: read `pick` command implementation
-  - `sed -n '1,260p' internal/cli/pick_test.go`: read `pick` tests
-  - `sed -n '1,220p' SESSIONS/000-template.md`: loaded the session note template
-  - `sed -n '1,260p' internal/cli/root.go`: read command dispatch for stderr plumbing
-  - `sed -n '1,220p' internal/picker/fzf.go`: verified `fzf` launch position in the runtime path
-  - `sed -n '1,260p' internal/picker/candidates.go`: verified candidate loading semantics before `fzf`
-  - `sed -n '1,220p' internal/index/schema.go`: reviewed SQLite open and schema init behavior
-  - `sed -n '1,220p' internal/index/picker.go`: reviewed recent-history query path
-  - `sed -n '1,260p' internal/snippets/store.go`: reviewed snippet store reads
-  - `gofmt -w internal/cli/root.go internal/cli/pick.go internal/cli/pick_test.go`: formatted the touched Go files
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: verified CLI tests including the new debug path
+  - `git checkout -b 047-pick-fzf-tty-wiring`: created the implementation branch from the planning branch
+  - `sed -n '1,260p' SESSION.md`: refreshed planning context and constraints
+  - `sed -n '1,220p' internal/picker/fzf.go`: reviewed the current `fzf` launch path
+  - `sed -n '1,260p' internal/picker/fzf_test.go`: reviewed picker tests
+  - `gofmt -w internal/picker/fzf.go internal/picker/fzf_test.go`: formatted the touched Go files
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/picker`: verified picker tests including the new TTY seam coverage
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: verified `pick` CLI behavior still passes
   - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`: verified the full repository test suite
-  - `git diff -- internal/cli/root.go internal/cli/pick.go internal/cli/pick_test.go`: reviewed the final implementation diff
-  - `gh --version`: verified GitHub CLI availability for publish flow
-  - `gh auth status`: verified authenticated GitHub CLI session
-  - `git remote get-url origin`: confirmed repository remote
-  - `gh repo view --json nameWithOwner,defaultBranchRef`: confirmed target repo and default branch
+  - `git status --short --branch`: reviewed the worktree and preserved unrelated untracked file `1`
+  - `git diff -- internal/picker/fzf.go internal/picker/fzf_test.go SESSION.md SESSIONS/046-pick-fzf-tty-wiring-plan.md`: reviewed the final implementation diff
 - tests:
   - added:
-    - `TestExecutePickDebugWritesStageDiagnosticsToStderr`
+    - `TestSelectMirrorsFZFStderrToTTYWhenAvailable`
+    - `TestSelectReturnsCapturedErrorWhenTTYUnavailable`
   - changed:
-    - `TestExecutePickHelp`
+    - `TestSelectReturnsChosenCandidate`
+    - `TestSelectReturnsNoSelectionForAbort`
   - run:
+    - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/picker`
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
   - skipped: none
   - failing: none
 - decisions:
-  - make diagnostics opt-in behind `histkit pick --debug` so normal interactive use stays unchanged
-  - write diagnostics to stderr so stdout remains reserved for the selected command
-  - instrument each pre-`fzf` stage with start and completion timing to identify the exact blocking boundary quickly
+  - open `/dev/tty` explicitly for the interactive `fzf` output channel instead of inheriting the process stderr blindly
+  - mirror `fzf` stderr to both the TTY and an internal buffer so user-visible UI and returned error text can coexist
+  - keep the fix inside the picker layer and avoid any shell-wrapper contract changes
 - assumptions:
-  - `NON-BLOCKING`: a command-specific `--debug` flag is a safe CLI addition because it is opt-in, preserves normal behavior, and has low reversal cost if later replaced by a shared debug facility
+  - `NON-BLOCKING`: mirroring `fzf` stderr to the TTY is sufficient to fix the observed hidden-UI behavior while keeping stdout capture intact
 - unresolved questions:
   - none currently recorded
-- next step: use `histkit pick --debug` against the user environment and decide from the emitted stage boundary whether the next slice should target SQLite lock handling, path/config diagnostics, or `fzf` terminal wiring
+- next step: push the slice branch, open a PR, and wait for human approval before merge and cleanup; if user testing still shows hidden `fzf`, investigate whether stdin or broader stdio inheritance also needs TTY ownership
 
 ## End-of-session notes
 
 Summary:
 
-- Added `histkit pick --debug` so the command now emits step-by-step progress diagnostics to stderr around home detection, config/path resolution, SQLite open/init, candidate loading, and `fzf` launch.
-- Kept the default `pick` path unchanged: stdout still carries only the selected command, and successful non-debug runs remain silent on stderr.
-- Added CLI coverage for the new debug diagnostics path.
+- Updated the picker so `fzf` interactive stderr is mirrored to `/dev/tty` when available, while stdout remains buffered for the selected command.
+- Added picker tests for TTY mirroring and no-TTY fallback, and kept the existing selection and abort behavior intact.
+- Carried the prior `046` planning note forward with this implementation slice.
 
 Tests run:
 
+- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/picker`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
 
@@ -168,4 +154,4 @@ Known failures:
 
 Next recommended session:
 
-- `046-pick-stall-root-cause-follow-up`
+- `048-pick-tty-follow-up` if user testing shows that stderr mirroring alone is insufficient in some terminals
