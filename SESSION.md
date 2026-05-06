@@ -83,10 +83,12 @@ Summary:
 - README now documents the current conservative workflow as `doctor -> scan -> optional stats/pick -> clean --dry-run -> clean --apply -> restore`.
 - Unsupported README references to future commands and flags were removed.
 - Wrapper, config, restore, and `systemd --user` documentation were tightened to match the current implementation.
+- Restore usage documentation and built-in help now require flags before the positional backup ID, matching the current Go flag parsing behavior.
 
 Files changed:
 
 - README.md
+- internal/cli/restore.go
 - SESSION.md
 - SESSIONS/036-readme-usage-flow.md
 
@@ -129,6 +131,8 @@ Tests added:
 Tests run:
 
 - `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./...`
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./internal/cli`
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go run ./cmd/histkit help restore`
 
 Known failures:
 
@@ -140,6 +144,7 @@ Decisions made:
 - Keep the README limited to implemented commands and flags.
 - Present `clean --apply` as a reviewed explicit step, not a default or automated behavior.
 - Keep automation documentation focused on the shipped scan-only `systemd --user` units.
+- Resolve the restore argument-order review finding by changing docs and help text, not by changing parser behavior in this documentation slice.
 
 Commands run:
 
@@ -151,6 +156,10 @@ Commands run:
 - `git commit -m "Tighten README usage flow"`
 - `git push -u origin 036-readme-usage-flow`
 - created draft PR `#35` (`https://github.com/davidyanceyjr/histkit/pull/35`)
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./internal/cli`
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go run ./cmd/histkit help restore`
+- `rm -rf .gocache .gomodcache .gopath`
+- `chmod -R u+w .gomodcache && rm -rf .gomodcache`
 
 Assumptions made:
 
@@ -160,6 +169,7 @@ Risks introduced or reduced:
 
 - Reduced: README drift against the actual command surface, flags, and automation posture.
 - Reduced: risk of users inferring unattended destructive cleanup from the shipped systemd automation docs.
+- Reduced: restore usage examples and command help no longer imply a flag ordering that the current CLI rejects.
 
 Next recommended session:
 

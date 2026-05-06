@@ -137,11 +137,13 @@ histkit stats
 
 Restore history state from a recorded backup.
 
-If no backup identifier is given, `restore` lists available backups. When a backup ID is provided, histkit restores that snapshot and appends a restore record to the audit log.
+If no backup identifier is given, `restore` lists available backups. When a backup ID is provided, histkit restores that snapshot and appends a restore record to the audit log. As with the other commands, flags must appear before positional arguments.
 
 ```sh
 histkit restore
+histkit restore --config ~/.config/histkit/config.toml
 histkit restore b_20260501T130200Z_001
+histkit restore --config ~/.config/histkit/config.toml b_20260501T130200Z_001
 ```
 
 ## Available flags

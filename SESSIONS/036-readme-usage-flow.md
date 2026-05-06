@@ -4,7 +4,7 @@ Status: completed
 
 ## Summary
 
-Tightened the README so the documented usage flow is conservative and matches the current binary: `doctor`, `scan`, optional `stats` or `pick`, `clean --dry-run`, explicit `clean --apply`, and `restore`.
+Tightened the README so the documented usage flow is conservative and matches the current binary: `doctor`, `scan`, optional `stats` or `pick`, `clean --dry-run`, explicit `clean --apply`, and `restore`. A PR-review follow-up also corrected the documented `restore` flag ordering to match the current CLI parser behavior.
 
 ## Objective completed or not completed
 
@@ -45,7 +45,8 @@ Completed.
 
 ## Files changed
 
-- `README.md` - aligned the documented workflow, command surface, flags, config example, examples, wrapper notes, and `systemd --user` automation section with the current implementation.
+- `README.md` - aligned the documented workflow, command surface, flags, config example, examples, wrapper notes, and `systemd --user` automation section with the current implementation; later corrected `restore` examples to require flags before `backup-id`.
+- `internal/cli/restore.go` - updated the built-in usage text so `histkit help restore` matches the actual argument parsing contract.
 - `SESSION.md` - updated the working state for review/merge handoff after this documentation slice.
 - `SESSIONS/036-readme-usage-flow.md` - recorded this session artifact.
 
@@ -56,6 +57,8 @@ Completed.
 ## Tests run
 
 - `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./...`
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./internal/cli`
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go run ./cmd/histkit help restore`
 
 ## Known failures
 
@@ -86,6 +89,10 @@ Completed.
 - `git commit -m "Tighten README usage flow"` - created the session commit.
 - `git push -u origin 036-readme-usage-flow` - pushed the session branch to GitHub.
 - created draft PR `#35` (`https://github.com/davidyanceyjr/histkit/pull/35`) - opened the review handoff required by the workflow.
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go test ./internal/cli` - verified the targeted CLI package after the review follow-up.
+- `env GOCACHE=/home/opsman/project_git/histkit/.gocache GOMODCACHE=/home/opsman/project_git/histkit/.gomodcache GOPATH=/home/opsman/project_git/histkit/.gopath go run ./cmd/histkit help restore` - verified the updated `restore` help output.
+- `rm -rf .gocache .gomodcache .gopath` - attempted to remove repo-local Go caches after verification; module cache permissions blocked full removal.
+- `chmod -R u+w .gomodcache && rm -rf .gomodcache` - removed the remaining repo-local module cache after fixing permissions.
 
 ## Decisions made
 
@@ -93,6 +100,7 @@ Completed.
 - The recommended README workflow should start with `doctor`, keep `scan` and `clean` separated, and present `clean --apply` as an explicit reviewed step.
 - Automation documentation should stay limited to the shipped scan-only `systemd --user` units and must not imply unattended destructive cleanup.
 - Snippet and quarantine behavior should be described conservatively without claiming unimplemented management commands.
+- The restore review finding should be resolved by tightening docs and built-in help to match current parser behavior rather than changing argument parsing in a documentation-focused slice.
 
 ## Assumptions made
 
@@ -108,6 +116,7 @@ Completed.
 - Reduced: the README no longer advertises unsupported commands or flags.
 - Reduced: the end-to-end workflow now better reflects the project’s conservative apply and restore posture.
 - Reduced: automation guidance now clearly states that the shipped timer runs `scan`, not `clean --apply`.
+- Reduced: restore usage docs and `histkit help restore` no longer advertise an argument order that the current CLI rejects.
 
 ## Next slice recommendation
 
