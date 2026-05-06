@@ -59,21 +59,39 @@ func runHelp(args []string, stdout io.Writer) error {
 }
 
 func writeRootUsage(w io.Writer) {
-	fmt.Fprintln(w, "histkit is a conservative CLI for shell history hygiene, reusable snippets, and fuzzy command recall.")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "It keeps raw shell history, the local history index, and snippets separate by design.")
-	fmt.Fprintln(w, "The normal workflow is: doctor -> scan -> stats or pick -> clean --dry-run -> clean --apply -> restore.")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Usage:")
-	fmt.Fprintln(w, "  histkit <command> [flags]")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Commands:")
-	fmt.Fprintln(w, "  doctor  Check config, local paths, detected history sources, fzf, and related environment state")
-	fmt.Fprintln(w, "  scan    Parse supported shell history sources and refresh the local SQLite history index")
-	fmt.Fprintln(w, "  stats   Show indexed history counts by shell and source")
-	fmt.Fprintln(w, "  pick    Select a command from indexed history and snippets through fzf")
-	fmt.Fprintln(w, "  clean   Preview or apply cleanup rules to shell history with backups and audit logging")
-	fmt.Fprintln(w, "  restore List recorded backups or restore a specific backup")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Use \"histkit help <command>\" or \"histkit <command> --help\" for command-specific help.")
+	writeHelpBlocks(w,
+		helpBlock{
+			Lines: []string{
+				"histkit is a conservative CLI for shell history hygiene, reusable snippets, and fuzzy command recall.",
+			},
+		},
+		helpBlock{
+			Lines: []string{
+				"It keeps raw shell history, the local history index, and snippets separate by design.",
+				"The normal workflow is: doctor -> scan -> stats or pick -> clean --dry-run -> clean --apply -> restore.",
+			},
+		},
+		helpBlock{
+			Title: "Usage",
+			Lines: []string{
+				"  histkit <command> [flags]",
+			},
+		},
+		helpBlock{
+			Title: "Commands",
+			Lines: []string{
+				"  doctor  Check config, local paths, detected history sources, fzf, and related environment state",
+				"  scan    Parse supported shell history sources and refresh the local SQLite history index",
+				"  stats   Show indexed history counts by shell and source",
+				"  pick    Select a command from indexed history and snippets through fzf",
+				"  clean   Preview or apply cleanup rules to shell history with backups and audit logging",
+				"  restore List recorded backups or restore a specific backup",
+			},
+		},
+		helpBlock{
+			Lines: []string{
+				"Use \"histkit help <command>\" or \"histkit <command> --help\" for command-specific help.",
+			},
+		},
+	)
 }

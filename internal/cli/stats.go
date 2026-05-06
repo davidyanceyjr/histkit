@@ -34,16 +34,31 @@ func runStats(args []string, stdout io.Writer) error {
 }
 
 func writeStatsUsage(w io.Writer) {
-	fmt.Fprintln(w, "Usage:")
-	fmt.Fprintln(w, "  histkit stats [--config <path>]")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Read the local SQLite history index and print indexed entry counts by shell and source.")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "stats reports what has already been indexed.")
-	fmt.Fprintln(w, "It does not rescan history files or modify them.")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Flags:")
-	fmt.Fprintln(w, "  --config <path>   load a specific histkit config file before reading stats")
+	writeHelpBlocks(w,
+		helpBlock{
+			Title: "Usage",
+			Lines: []string{
+				"  histkit stats [--config <path>]",
+			},
+		},
+		helpBlock{
+			Lines: []string{
+				"Read the local SQLite history index and print indexed entry counts by shell and source.",
+			},
+		},
+		helpBlock{
+			Lines: []string{
+				"stats reports what has already been indexed.",
+				"It does not rescan history files or modify them.",
+			},
+		},
+		helpBlock{
+			Title: "Flags",
+			Lines: []string{
+				"  --config <path>   load a specific histkit config file before reading stats",
+			},
+		},
+	)
 }
 
 type statsOptions struct {

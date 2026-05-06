@@ -24,16 +24,12 @@ func TestExecuteRestoreHelp(t *testing.T) {
 	}
 
 	output := stdout.String()
-	for _, want := range []string{
+	assertHelpContains(t, output,
 		"Usage:\n  histkit restore [--config <path>] [backup-id]",
 		"Without a backup ID, restore lists the backups available under the histkit state directory.",
 		"With a backup ID, restore replaces the source history file from that backup and appends an audit record.",
 		"--config <path>   load a specific histkit config file before listing or restoring backups",
-	} {
-		if !strings.Contains(output, want) {
-			t.Fatalf("expected restore help to contain %q, got %q", want, output)
-		}
-	}
+	)
 }
 
 func TestExecuteRestoreListsBackupsWhenNoIDProvided(t *testing.T) {

@@ -39,16 +39,31 @@ func runPick(args []string, stdout io.Writer) error {
 }
 
 func writePickUsage(w io.Writer) {
-	fmt.Fprintln(w, "Usage:")
-	fmt.Fprintln(w, "  histkit pick [--config <path>]")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Open an fzf picker over indexed history and snippets, then print the selected command to stdout.")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "pick reads from the local history index and the snippet store.")
-	fmt.Fprintln(w, "It does not write shell history or expand snippet placeholders on its own.")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Flags:")
-	fmt.Fprintln(w, "  --config <path>   load a specific histkit config file before opening the picker")
+	writeHelpBlocks(w,
+		helpBlock{
+			Title: "Usage",
+			Lines: []string{
+				"  histkit pick [--config <path>]",
+			},
+		},
+		helpBlock{
+			Lines: []string{
+				"Open an fzf picker over indexed history and snippets, then print the selected command to stdout.",
+			},
+		},
+		helpBlock{
+			Lines: []string{
+				"pick reads from the local history index and the snippet store.",
+				"It does not write shell history or expand snippet placeholders on its own.",
+			},
+		},
+		helpBlock{
+			Title: "Flags",
+			Lines: []string{
+				"  --config <path>   load a specific histkit config file before opening the picker",
+			},
+		},
+	)
 }
 
 type pickOptions struct {

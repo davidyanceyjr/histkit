@@ -26,16 +26,12 @@ func TestExecutePickHelp(t *testing.T) {
 	}
 
 	output := stdout.String()
-	for _, want := range []string{
+	assertHelpContains(t, output,
 		"Usage:\n  histkit pick [--config <path>]",
 		"pick reads from the local history index and the snippet store.",
 		"It does not write shell history or expand snippet placeholders on its own.",
 		"--config <path>   load a specific histkit config file before opening the picker",
-	} {
-		if !strings.Contains(output, want) {
-			t.Fatalf("expected pick help to contain %q, got %q", want, output)
-		}
-	}
+	)
 }
 
 func TestExecutePickPrintsSelectedCommand(t *testing.T) {
