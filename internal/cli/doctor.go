@@ -37,7 +37,13 @@ func writeDoctorUsage(w io.Writer) {
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  histkit doctor [--config <path>]")
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Inspect the local histkit environment and report basic configuration and runtime checks.")
+	fmt.Fprintln(w, "Inspect the local histkit environment and report configuration and runtime checks.")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "doctor checks config loading, writable state paths, detected history sources, the history index,")
+	fmt.Fprintln(w, "fzf availability, and optional systemd --user automation files.")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Flags:")
+	fmt.Fprintln(w, "  --config <path>   load or validate a specific histkit config file")
 }
 
 type doctorOptions struct {

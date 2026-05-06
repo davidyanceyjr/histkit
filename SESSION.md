@@ -2,29 +2,28 @@
 
 ## Current session
 
-ID: `042-root-help-refresh`
+ID: `043-command-help-detail`
 
 Status: completed
 
 ## Objective
 
-Refresh `histkit --help` so the root help output gives a clearer application summary, explains the high-level safe workflow, and provides more descriptive command summaries without changing command behavior.
+Refresh `histkit <command> --help` output so each current command explains its purpose, safe operating mode, and supported flags without changing command behavior.
 
 ## Scope
 
 Implement:
 
-- expand the root help summary to reflect histkit's current CLI role
-- improve the root command list with more informative one-line descriptions
-- make root help point clearly to per-command help
-- add or tighten tests for the revised root help output
+- expand per-command help text for `scan`, `clean`, `pick`, `doctor`, `stats`, and `restore`
+- keep command help aligned with implemented behavior rather than aspirational roadmap language
+- add or tighten automated tests for each command help path
 
 ## Out of scope
 
-- per-command help rewrites for `histkit <command> --help`
 - new flags or command behavior changes
-- picker startup or candidate-loading changes
-- README or broader documentation rewrites unless needed to resolve a root-help wording conflict
+- root help rewrites beyond keeping terminology consistent with the prior slice
+- README rewrites or broader docs refreshes
+- picker behavior, scan pipeline, cleanup logic, or restore semantics changes
 
 ## Relevant skills
 
@@ -33,13 +32,14 @@ Implement:
 
 ## Acceptance criteria
 
-- `histkit --help` presents a stronger overall summary than the current single-line description
-- root help describes command purpose in enough detail to distinguish scan, pick, clean, restore, stats, and doctor at a glance
-- automated tests verify the new summary and guidance text
+- each current command has help text that explains what it does in concrete terms
+- `clean` help distinguishes preview behavior from apply behavior
+- `restore` help distinguishes list mode from restore-by-ID mode
+- automated tests verify the revised per-command help output
 
 ## Current repo state
 
-Branch `042-root-help-refresh` is being rebuilt on top of `main` so the PR contains only the root help slice. The implementation and tests for this session are complete.
+Branch `043-command-help-detail` contains the completed per-command help refresh and matching CLI tests. The worktree is ready for staging and publish steps.
 
 ## Decisions already made
 
@@ -54,8 +54,8 @@ Branch `042-root-help-refresh` is being rebuilt on top of `main` so the PR conta
 
 ## Risks to watch
 
-- Root help text should stay accurate to the current implemented behavior, not the aspirational roadmap.
-- Help copy should reinforce the separation between raw history, indexed history, and snippets without turning the root screen into a README dump.
+- Help text must stay tied to implemented behavior and avoid promising future command capabilities.
+- Command help should stay compact enough for terminal use even while adding flag and mode detail.
 
 ## Open questions
 
@@ -79,91 +79,111 @@ No questions answered this session.
 
 ## Working state
 
-- intent: refresh the root help output for `histkit --help`
-- scope: `internal/cli/root.go`, `internal/cli/root_test.go`, `SESSION.md`, and `SESSIONS/042-root-help-refresh.md`
-- constraints: keep behavior non-destructive, keep command handlers thin, avoid changing per-command help in this slice
+- intent: refresh the command-specific help output for the existing CLI commands
+- scope: `internal/cli/{scan,clean,pick,doctor,stats,restore}.go`, matching `*_test.go` files, `SESSION.md`, and `SESSIONS/043-command-help-detail.md`
+- constraints: keep command handlers thin, avoid behavior changes, preserve non-destructive defaults, keep wording aligned to current implementation
 - files read:
   - `AGENTS.md`: required implementation workflow and session-record rules
-  - `SESSION.md`: prior session context and active working-state format
-  - `ROADMAP.md`: milestone boundaries and current roadmap state
-  - `SKILLS/go-cli.md`: CLI implementation constraints
-  - `SKILLS/testing.md`: verification expectations
-  - `README.md`: current product wording for the CLI summary and safe workflow
-  - `internal/cli/root.go`: current root help implementation
-  - `internal/cli/root_test.go`: existing root help assertions
+  - `SESSION.md`: previous session state and working-state format
+  - `ROADMAP.md`: roadmap boundaries and slice naming
+  - `SKILLS/go-cli.md`: CLI constraints and handler expectations
+  - `SKILLS/testing.md`: verification expectations for this slice
+  - `README.md`: current command wording and safe-workflow descriptions used as a consistency source
+  - `internal/cli/scan.go`: current scan help implementation
+  - `internal/cli/clean.go`: current clean help implementation
+  - `internal/cli/pick.go`: current pick help implementation
+  - `internal/cli/doctor.go`: current doctor help implementation
+  - `internal/cli/stats.go`: current stats help implementation
+  - `internal/cli/restore.go`: current restore help implementation
+  - `internal/cli/scan_test.go`: existing scan coverage
+  - `internal/cli/clean_test.go`: existing clean coverage
+  - `internal/cli/pick_test.go`: existing pick coverage
+  - `internal/cli/doctor_test.go`: existing doctor coverage
+  - `internal/cli/stats_test.go`: existing stats coverage
+  - `internal/cli/restore_test.go`: existing restore coverage
   - `SESSIONS/000-template.md`: session note template
 - files changed:
-  - `SESSION.md`: active and completed session state for slice 042
-  - `internal/cli/root.go`: refreshed root help summary, workflow guidance, and command descriptions
-  - `internal/cli/root_test.go`: strengthened root help assertions for the revised root help output
-  - `SESSIONS/042-root-help-refresh.md`: recorded the completed session
+  - `internal/cli/scan.go`: expanded `scan --help` text with non-destructive behavior and flag details
+  - `internal/cli/clean.go`: expanded `clean --help` text with preview vs apply guidance and flag details
+  - `internal/cli/pick.go`: expanded `pick --help` text with data-source and output behavior guidance
+  - `internal/cli/doctor.go`: expanded `doctor --help` text with check categories and config flag guidance
+  - `internal/cli/stats.go`: expanded `stats --help` text with index-only behavior and flag guidance
+  - `internal/cli/restore.go`: expanded `restore --help` text with list vs restore mode guidance and flag details
+  - `internal/cli/scan_test.go`: added direct assertions for `scan --help`
+  - `internal/cli/clean_test.go`: added direct assertions for `clean --help`
+  - `internal/cli/pick_test.go`: added direct assertions for `pick --help`
+  - `internal/cli/doctor_test.go`: added direct assertions for `doctor --help`
+  - `internal/cli/stats_test.go`: added direct assertions for `stats --help`
+  - `internal/cli/restore_test.go`: added direct assertions for `restore --help`
+  - `SESSION.md`: recorded the active and completed session state for slice 043
+  - `SESSIONS/043-command-help-detail.md`: recorded the completed session
 - commands run:
-  - `pwd`: confirmed repository root
-  - `git status --short --branch`: confirmed prior branch state and current working branch
-  - `sed -n '1,220p' SESSION.md`: read prior session state
-  - `sed -n '1,260p' ROADMAP.md`: read roadmap boundaries
-  - `rg --files`: inventoried repository files
-  - `sed -n '1,240p' /home/opsman/.codex/plugins/cache/openai-curated/github/9d07fd08/skills/yeet/SKILL.md`: read publish workflow skill
-  - `git checkout -b 042-root-help-refresh`: created the original session branch
-  - `sed -n '1,220p' internal/cli/root.go`: read current root help implementation
-  - `sed -n '1,220p' internal/cli/root_test.go`: read current root help tests
-  - `sed -n '1,220p' README.md`: read current product wording
-  - `gofmt -w internal/cli/root.go internal/cli/root_test.go`: formatted edited Go files
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: verified the CLI slice
+  - `sed -n '1,260p' SESSION.md`: read prior session context
+  - `sed -n '1,260p' ROADMAP.md`: confirmed roadmap boundaries and next slice naming
+  - `sed -n '1,240p' SKILLS/go-cli.md`: loaded CLI implementation constraints
+  - `sed -n '1,240p' SKILLS/testing.md`: loaded test expectations
+  - `git status --short --branch`: confirmed clean starting state on `main`
+  - `git checkout -b 043-command-help-detail`: created the session branch
+  - `sed -n '1,240p' internal/cli/scan.go`: read current scan help
+  - `sed -n '1,260p' internal/cli/clean.go`: read current clean help
+  - `sed -n '1,260p' internal/cli/pick.go`: read current pick help
+  - `sed -n '1,260p' internal/cli/doctor.go`: read current doctor help
+  - `sed -n '1,220p' internal/cli/stats.go`: read current stats help
+  - `sed -n '1,260p' internal/cli/restore.go`: read current restore help
+  - `sed -n '1,260p' internal/cli/scan_test.go`: read current scan tests
+  - `sed -n '1,320p' internal/cli/clean_test.go`: read current clean tests
+  - `sed -n '1,260p' internal/cli/pick_test.go`: read current pick tests
+  - `sed -n '1,260p' internal/cli/doctor_test.go`: read current doctor tests
+  - `sed -n '1,260p' internal/cli/stats_test.go`: read current stats tests
+  - `sed -n '1,320p' internal/cli/restore_test.go`: read current restore tests
+  - `gofmt -w internal/cli/scan.go internal/cli/clean.go internal/cli/pick.go internal/cli/doctor.go internal/cli/stats.go internal/cli/restore.go internal/cli/scan_test.go internal/cli/clean_test.go internal/cli/pick_test.go internal/cli/doctor_test.go internal/cli/stats_test.go internal/cli/restore_test.go`: formatted the touched Go files
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: verified CLI help and behavior tests
   - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`: verified the full repository test suite
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go run ./cmd/histkit clean --help`: smoke-checked one of the revised help screens through the built binary entrypoint
   - `sed -n '1,240p' SESSIONS/000-template.md`: loaded the session note template
-  - `gh --version`: verified GitHub CLI availability for publish workflow
-  - `gh auth status`: verified authenticated GitHub session
-  - `git remote get-url origin`: confirmed publish target repository
-  - `git branch --show-current`: confirmed session branch name
-  - `go run ./cmd/histkit --help`: attempted a direct smoke check; failed because the default Go build cache path under `/home/opsman/.cache` is not writable here
-  - `git add SESSION.md SESSIONS/042-root-help-refresh.md internal/cli/root.go internal/cli/root_test.go`: staged the session files
-  - `git commit -m "Refresh root help output"`: created the original session commit
-  - `git push -u origin 042-root-help-refresh`: pushed the original branch
-  - `gh repo view --json nameWithOwner,defaultBranchRef`: confirmed PR target metadata
-  - draft PR `#39` was opened and then identified as mixed-scope because the branch was based on unmerged session `041`
-  - `git branch backup/042-root-help-refresh-mixed 042-root-help-refresh`: preserved the mixed-scope branch state locally before rebuilding
-  - `git checkout main`: returned to the default branch
-  - `git checkout -B 042-root-help-refresh main`: rebuilt the session branch on top of `main`
-  - `git cherry-pick 5ec0979`: reapplied the root-help commit onto the clean branch base and resolved the `SESSION.md` conflict
+  - `git status --short --branch`: captured the modified file set after implementation
 - tests:
-  - added: none; existing root help coverage was expanded rather than adding a new test function
-  - changed: `TestExecuteHelp`
+  - added:
+    - `TestExecuteScanHelp`
+    - `TestExecuteCleanHelp`
+    - `TestExecutePickHelp`
+    - `TestExecuteDoctorHelp`
+    - `TestExecuteStatsHelp`
+    - `TestExecuteRestoreHelp`
+  - changed: none beyond those added test functions
   - run:
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
   - skipped: none
   - failing: none
 - decisions:
-  - use current README language only as a source for accurate short-form CLI wording, not as a prompt to widen this slice into a docs rewrite
-  - keep the root workflow summary short and linear so the terminal help output stays scannable
-  - rebuild the branch on top of `main` after discovering that the first draft PR unintentionally included unmerged `041` commits
+  - keep per-command help terminal-oriented by limiting each screen to purpose, safe-mode distinctions, and supported flags
+  - use README wording only as a consistency source for implemented behavior, not as a reason to widen the slice into broader docs work
+  - test each `--help` path directly so future copy drift is caught close to the command it affects
 - assumptions:
-  - `NON-BLOCKING`: root help may summarize the safe workflow briefly without enumerating every command example; safe because this changes wording only and can be revised at low cost if the phrasing proves too dense
+  - `NON-BLOCKING`: command help may describe current behavior in short prose without adding examples for every command; safe because this changes wording only and can be revised at low cost if later usability testing shows examples are needed
 - unresolved questions:
   - none currently recorded
-- next step: finish the clean-branch publish flow and proceed to slice `043-command-help-detail`
+- next step: publish the branch and then take a small follow-up slice for shared help formatting cleanup if repetition across usage functions starts to drift
 
 ## End-of-session notes
 
 Summary:
 
-- `histkit --help` now explains histkit as a CLI for history hygiene, reusable snippets, and fuzzy command recall instead of using the older one-line summary.
-- Root help now states the key separation between raw shell history, the local history index, and snippets, and it includes a concise safe-workflow line.
-- Command descriptions in the root help output are more specific, and the help guidance now points users to both `histkit help <command>` and `histkit <command> --help`.
-- Root help coverage was tightened so the updated summary, workflow, and command descriptions are asserted directly.
-- The session branch had to be rebuilt on top of `main` after the first draft PR showed mixed scope from unmerged slice `041`.
+- Each current command now has a fuller `--help` screen that explains what it does, what mode it runs in, and which flags matter.
+- `clean --help` now makes the preview-versus-apply distinction explicit, and `restore --help` now makes list-versus-restore mode explicit.
+- Command help coverage was expanded with one direct `--help` assertion per command so future text changes are easier to verify.
 
 Tests run:
 
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
+- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go run ./cmd/histkit clean --help`
 
 Known failures:
 
 - No repository test failures.
-- A direct `go run ./cmd/histkit --help` smoke check could not use the default Go build cache path because `/home/opsman/.cache` is not writable in this environment.
 
 Next recommended session:
 
-- `043-command-help-detail`
+- `044-help-format-consolidation`

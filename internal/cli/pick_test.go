@@ -14,6 +14,30 @@ import (
 	"histkit/internal/snippets"
 )
 
+func TestExecutePickHelp(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	if err := Execute([]string{"pick", "--help"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+
+	output := stdout.String()
+	for _, want := range []string{
+		"Usage:\n  histkit pick [--config <path>]",
+		"pick reads from the local history index and the snippet store.",
+		"It does not write shell history or expand snippet placeholders on its own.",
+		"--config <path>   load a specific histkit config file before opening the picker",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected pick help to contain %q, got %q", want, output)
+		}
+	}
+}
+
 func TestExecutePickPrintsSelectedCommand(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

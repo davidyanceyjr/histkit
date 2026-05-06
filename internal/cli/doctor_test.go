@@ -8,6 +8,30 @@ import (
 	"testing"
 )
 
+func TestExecuteDoctorHelp(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	if err := Execute([]string{"doctor", "--help"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+
+	output := stdout.String()
+	for _, want := range []string{
+		"Usage:\n  histkit doctor [--config <path>]",
+		"doctor checks config loading, writable state paths, detected history sources, the history index,",
+		"fzf availability, and optional systemd --user automation files.",
+		"--config <path>   load or validate a specific histkit config file",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected doctor help to contain %q, got %q", want, output)
+		}
+	}
+}
+
 func TestExecuteDoctorReportsWarningsForFreshHome(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
