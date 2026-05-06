@@ -2,28 +2,29 @@
 
 ## Current session
 
-ID: `044-help-format-consolidation`
+ID: `045-pick-debug-diagnostics`
 
 Status: completed
 
 ## Objective
 
-Consolidate shared CLI help formatting so root and command help screens are rendered through a common helper without changing command behavior or materially changing help output.
+Add opt-in diagnostics for `histkit pick` so a user can identify whether the command is stalling before database access, candidate loading, or `fzf` launch.
 
 ## Scope
 
 Implement:
 
-- extract shared help section rendering for root and per-command usage output
-- keep current help wording and layout stable
-- reduce duplicated help assertions where the shared test helper already exists
+- add a `pick` debug flag that emits progress diagnostics to stderr
+- keep normal `pick` behavior unchanged when debug is disabled
+- cover the new diagnostics path with deterministic CLI tests
 
 ## Out of scope
 
-- new flags or command behavior changes
-- help wording rewrites beyond preserving the current merged copy
+- changing picker candidate semantics
+- changing `fzf` terminal wiring
+- adding SQLite lock timeouts or retries
+- changing scan, stats, or doctor behavior
 - README or broader documentation updates
-- command routing, picker behavior, cleanup logic, or restore semantics changes
 
 ## Relevant skills
 
@@ -32,13 +33,13 @@ Implement:
 
 ## Acceptance criteria
 
-- root help and each command help path still produce the same substantive output
-- duplicated help rendering logic is reduced
-- automated CLI tests continue to cover root help and each command help path
+- `histkit pick --debug` emits stage-level diagnostics before `fzf` launches
+- standard `histkit pick` remains silent on stderr during successful runs
+- CLI tests cover the debug flag and still pass
 
 ## Current repo state
 
-Branch `044-help-format-consolidation` contains the completed help-rendering consolidation and test cleanup. The worktree is ready for staging and publish steps.
+Branch `045-pick-debug-diagnostics` contains the completed `pick` diagnostics slice and is ready for staging, publish, and merge workflow.
 
 ## Decisions already made
 
@@ -53,8 +54,8 @@ Branch `044-help-format-consolidation` contains the completed help-rendering con
 
 ## Risks to watch
 
-- The shared help renderer must not accidentally reflow or reorder existing help output.
-- Future help edits should stay data-driven through the shared helper rather than reintroducing ad hoc formatting.
+- Debug output is written to stderr only when explicitly enabled and must stay off the normal `pick` path.
+- The diagnostics identify the blocking stage but do not yet change SQLite lock behavior or provide automatic recovery.
 
 ## Open questions
 
@@ -78,112 +79,88 @@ No questions answered this session.
 
 ## Working state
 
-- intent: consolidate shared CLI help formatting without changing behavior
-- scope: `internal/cli/help.go`, `internal/cli/{root,scan,clean,pick,doctor,stats,restore}.go`, matching help tests, `SESSION.md`, and `SESSIONS/044-help-format-consolidation.md`
-- constraints: preserve non-destructive defaults, keep wording aligned to current implementation, avoid broad rewrites, keep command handlers thin
+- intent: add opt-in `histkit pick` diagnostics to identify the pre-`fzf` blocking stage
+- scope: `internal/cli/{root,pick}.go`, `internal/cli/pick_test.go`, `SESSION.md`, and `SESSIONS/045-pick-debug-diagnostics.md`
+- constraints: preserve non-destructive behavior, keep normal `pick` stderr silent, avoid picker rewrites, avoid touching shell-history mutation paths
 - files read:
-  - `AGENTS.md`: required implementation workflow and session-record rules
-  - `SESSION.md`: previous session state and working-state format
+  - `AGENTS.md`: required workflow, session-record rules, and publish expectations
+  - `SESSION.md`: prior session state and structured working-state format
   - `ROADMAP.md`: roadmap boundaries and slice naming
-  - `SKILLS/go-cli.md`: CLI structure and behavior constraints
+  - `SKILLS/go-cli.md`: CLI implementation constraints
   - `SKILLS/testing.md`: test expectations
-  - `internal/cli/root.go`: current root help rendering
-  - `internal/cli/scan.go`: current scan help rendering
-  - `internal/cli/clean.go`: current clean help rendering
-  - `internal/cli/pick.go`: current pick help rendering
-  - `internal/cli/doctor.go`: current doctor help rendering
-  - `internal/cli/stats.go`: current stats help rendering
-  - `internal/cli/restore.go`: current restore help rendering
-  - `internal/cli/root_test.go`: existing shared help assertion helper and root help coverage
-  - `internal/cli/scan_test.go`: existing scan help assertions
-  - `internal/cli/clean_test.go`: existing clean help assertions
-  - `internal/cli/pick_test.go`: existing pick help assertions
-  - `internal/cli/doctor_test.go`: existing doctor help assertions
-  - `internal/cli/stats_test.go`: existing stats help assertions
-  - `internal/cli/restore_test.go`: existing restore help assertions
+  - `internal/cli/root.go`: command dispatch path that needed stderr plumbing for `pick`
+  - `internal/cli/pick.go`: current `pick` flag parsing and runtime sequence
+  - `internal/cli/pick_test.go`: existing `pick` behavior and help coverage
+  - `internal/picker/fzf.go`: confirmed `fzf` launch happens after candidate loading
+  - `internal/picker/candidates.go`: confirmed candidate loading is the pre-`fzf` boundary
+  - `internal/index/schema.go`: reviewed SQLite open and schema init path
+  - `internal/index/picker.go`: reviewed recent-history query used by `pick`
+  - `internal/snippets/store.go`: reviewed snippet store reads in the pre-`fzf` path
   - `SESSIONS/000-template.md`: session note template
+  - `/home/opsman/.codex/plugins/cache/openai-curated/github/9d07fd08/skills/yeet/SKILL.md`: publish workflow requirements
 - files changed:
-  - `internal/cli/help.go`: added a shared help-block renderer for CLI usage screens
-  - `internal/cli/root.go`: switched root help rendering to the shared helper
-  - `internal/cli/scan.go`: switched scan help rendering to the shared helper
-  - `internal/cli/clean.go`: switched clean help rendering to the shared helper
-  - `internal/cli/pick.go`: switched pick help rendering to the shared helper
-  - `internal/cli/doctor.go`: switched doctor help rendering to the shared helper
-  - `internal/cli/stats.go`: switched stats help rendering to the shared helper
-  - `internal/cli/restore.go`: switched restore help rendering to the shared helper
-  - `internal/cli/scan_test.go`: reused the shared `assertHelpContains` helper
-  - `internal/cli/clean_test.go`: reused the shared `assertHelpContains` helper
-  - `internal/cli/pick_test.go`: reused the shared `assertHelpContains` helper
-  - `internal/cli/doctor_test.go`: reused the shared `assertHelpContains` helper
-  - `internal/cli/stats_test.go`: reused the shared `assertHelpContains` helper
-  - `internal/cli/restore_test.go`: reused the shared `assertHelpContains` helper
-  - `SESSION.md`: recorded the active and completed session state for slice 044
-  - `SESSIONS/044-help-format-consolidation.md`: recorded the completed session
+  - `internal/cli/root.go`: passed stderr into `pick` command execution
+  - `internal/cli/pick.go`: added `--debug` flag and stage/timing diagnostics for the pre-`fzf` path plus selection outcome logging
+  - `internal/cli/pick_test.go`: covered debug flag help text and stderr diagnostics while preserving normal behavior assertions
+  - `SESSION.md`: recorded the active and completed session state for slice 045
+  - `SESSIONS/045-pick-debug-diagnostics.md`: recorded the completed session
 - commands run:
   - `sed -n '1,260p' SESSION.md`: read prior session context
-  - `sed -n '1,260p' ROADMAP.md`: confirmed roadmap boundaries and session naming
-  - `sed -n '1,240p' SKILLS/go-cli.md`: loaded CLI implementation constraints
-  - `sed -n '1,240p' SKILLS/testing.md`: loaded test expectations
+  - `sed -n '1,220p' ROADMAP.md`: confirmed roadmap boundaries and slice naming
+  - `sed -n '1,220p' SKILLS/go-cli.md`: loaded CLI implementation constraints
+  - `sed -n '1,220p' SKILLS/testing.md`: loaded test expectations
   - `git status --short --branch`: confirmed clean starting state on `main`
-  - `git checkout -b 044-help-format-consolidation`: created the session branch
-  - `sed -n '1,240p' internal/cli/root.go`: read root help implementation
-  - `sed -n '1,220p' internal/cli/scan.go`: read scan help implementation
-  - `sed -n '1,220p' internal/cli/clean.go`: read clean help implementation
-  - `sed -n '1,220p' internal/cli/pick.go`: read pick help implementation
-  - `sed -n '1,220p' internal/cli/doctor.go`: read doctor help implementation
-  - `sed -n '1,220p' internal/cli/stats.go`: read stats help implementation
-  - `sed -n '1,240p' internal/cli/restore.go`: read restore help implementation
-  - `sed -n '1,260p' internal/cli/root_test.go`: read root help tests and shared assertion helper
-  - `sed -n '1,220p' internal/cli/scan_test.go`: read scan help tests
-  - `sed -n '1,220p' internal/cli/clean_test.go`: read clean help tests
-  - `sed -n '1,220p' internal/cli/pick_test.go`: read pick help tests
-  - `sed -n '1,220p' internal/cli/doctor_test.go`: read doctor help tests
-  - `sed -n '1,220p' internal/cli/stats_test.go`: read stats help tests
-  - `sed -n '1,220p' internal/cli/restore_test.go`: read restore help tests
-  - `gofmt -w internal/cli/help.go internal/cli/root.go internal/cli/scan.go internal/cli/clean.go internal/cli/pick.go internal/cli/doctor.go internal/cli/stats.go internal/cli/restore.go internal/cli/scan_test.go internal/cli/clean_test.go internal/cli/pick_test.go internal/cli/doctor_test.go internal/cli/stats_test.go internal/cli/restore_test.go`: formatted the touched Go files
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: verified CLI help and behavior tests
+  - `git checkout -b 045-pick-debug-diagnostics`: created the session branch
+  - `sed -n '1,260p' /home/opsman/.codex/plugins/cache/openai-curated/github/9d07fd08/skills/yeet/SKILL.md`: loaded publish workflow instructions
+  - `sed -n '1,260p' internal/cli/pick.go`: read `pick` command implementation
+  - `sed -n '1,260p' internal/cli/pick_test.go`: read `pick` tests
+  - `sed -n '1,220p' SESSIONS/000-template.md`: loaded the session note template
+  - `sed -n '1,260p' internal/cli/root.go`: read command dispatch for stderr plumbing
+  - `sed -n '1,220p' internal/picker/fzf.go`: verified `fzf` launch position in the runtime path
+  - `sed -n '1,260p' internal/picker/candidates.go`: verified candidate loading semantics before `fzf`
+  - `sed -n '1,220p' internal/index/schema.go`: reviewed SQLite open and schema init behavior
+  - `sed -n '1,220p' internal/index/picker.go`: reviewed recent-history query path
+  - `sed -n '1,260p' internal/snippets/store.go`: reviewed snippet store reads
+  - `gofmt -w internal/cli/root.go internal/cli/pick.go internal/cli/pick_test.go`: formatted the touched Go files
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: verified CLI tests including the new debug path
   - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`: verified the full repository test suite
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go run ./cmd/histkit --help`: smoke-checked the consolidated root help output through the binary entrypoint
-  - `sed -n '1,240p' SESSIONS/000-template.md`: loaded the session note template
-  - `git status --short --branch`: captured the modified file set after implementation
-  - `git diff --stat`: reviewed the final change footprint
+  - `git diff -- internal/cli/root.go internal/cli/pick.go internal/cli/pick_test.go`: reviewed the final implementation diff
+  - `gh --version`: verified GitHub CLI availability for publish flow
+  - `gh auth status`: verified authenticated GitHub CLI session
+  - `git remote get-url origin`: confirmed repository remote
+  - `gh repo view --json nameWithOwner,defaultBranchRef`: confirmed target repo and default branch
 - tests:
-  - added: none
+  - added:
+    - `TestExecutePickDebugWritesStageDiagnosticsToStderr`
   - changed:
-    - `TestExecuteScanHelp`
-    - `TestExecuteCleanHelp`
     - `TestExecutePickHelp`
-    - `TestExecuteDoctorHelp`
-    - `TestExecuteStatsHelp`
-    - `TestExecuteRestoreHelp`
   - run:
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
   - skipped: none
   - failing: none
 - decisions:
-  - keep the shared renderer minimal and line-oriented so the current help copy stays stable
-  - reuse the existing `assertHelpContains` helper instead of adding another test helper layer
-  - consolidate formatting logic only, not the command-specific help content
+  - make diagnostics opt-in behind `histkit pick --debug` so normal interactive use stays unchanged
+  - write diagnostics to stderr so stdout remains reserved for the selected command
+  - instrument each pre-`fzf` stage with start and completion timing to identify the exact blocking boundary quickly
 - assumptions:
-  - `NON-BLOCKING`: representing help output as ordered blocks is safe because the current screens already follow that structure and the reversal cost is low if later help needs richer formatting
+  - `NON-BLOCKING`: a command-specific `--debug` flag is a safe CLI addition because it is opt-in, preserves normal behavior, and has low reversal cost if later replaced by a shared debug facility
 - unresolved questions:
   - none currently recorded
-- next step: publish the branch, then consider a small golden-output help test slice if byte-for-byte output stability becomes more important than substring assertions
+- next step: use `histkit pick --debug` against the user environment and decide from the emitted stage boundary whether the next slice should target SQLite lock handling, path/config diagnostics, or `fzf` terminal wiring
 
 ## End-of-session notes
 
 Summary:
 
-- Added a shared `writeHelpBlocks` helper so root and per-command help screens now use the same rendering path.
-- Kept the current help copy and layout stable while removing repetitive `fmt.Fprintln` sequences from the help writers.
-- Simplified the command help tests by reusing the existing shared substring assertion helper.
+- Added `histkit pick --debug` so the command now emits step-by-step progress diagnostics to stderr around home detection, config/path resolution, SQLite open/init, candidate loading, and `fzf` launch.
+- Kept the default `pick` path unchanged: stdout still carries only the selected command, and successful non-debug runs remain silent on stderr.
+- Added CLI coverage for the new debug diagnostics path.
 
 Tests run:
 
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
-- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go run ./cmd/histkit --help`
 
 Known failures:
 
@@ -191,4 +168,4 @@ Known failures:
 
 Next recommended session:
 
-- `045-help-output-golden-tests`
+- `046-pick-stall-root-cause-follow-up`

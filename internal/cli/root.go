@@ -21,7 +21,7 @@ func Execute(args []string, stdout, stderr io.Writer) error {
 	case "restore":
 		return runRestore(args[1:], stdout)
 	case "pick":
-		return runPick(args[1:], stdout)
+		return runPick(args[1:], stdout, stderr)
 	case "stats":
 		return runStats(args[1:], stdout)
 	case "doctor":
