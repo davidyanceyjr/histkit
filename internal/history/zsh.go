@@ -1,7 +1,6 @@
 package history
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strconv"
@@ -10,55 +9,77 @@ import (
 )
 
 func ParseZsh(sourceFile string, r io.Reader) ([]HistoryEntry, []ParseWarning, error) {
-	if strings.TrimSpace(sourceFile) == "" {
-		return nil, nil, fmt.Errorf("zsh parser source file is required")
-	}
-	if r == nil {
-		return nil, nil, fmt.Errorf("zsh parser reader is required")
-	}
-
-	scanner := bufio.NewScanner(r)
 	var entries []HistoryEntry
 	var warnings []ParseWarning
-	lineNumber := 0
+	err := StreamZsh(
+		sourceFile,
+		r,
+		func(entry HistoryEntry) error {
+			entries = append(entries, entry)
+			return nil
+		},
+		func(warning ParseWarning) error {
+			warnings = append(warnings, warning)
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	return entries, warnings, nil
+}
 
-	for scanner.Scan() {
-		lineNumber++
-		rawLine := scanner.Text()
+func StreamZsh(sourceFile string, r io.Reader, onEntry func(HistoryEntry) error, onWarning func(ParseWarning) error) error {
+	if strings.TrimSpace(sourceFile) == "" {
+		return fmt.Errorf("zsh parser source file is required")
+	}
+	if r == nil {
+		return fmt.Errorf("zsh parser reader is required")
+	}
 
+	if err := readHistoryLines(r, func(rawLine string, lineNumber int) error {
 		switch {
 		case rawLine == "":
-			continue
+			return nil
 		case strings.TrimSpace(rawLine) == "":
-			warnings = append(warnings, ParseWarning{
+			if err := onWarning(ParseWarning{
 				Shell:      ShellZsh,
 				SourceFile: sourceFile,
 				LineNumber: lineNumber,
 				RawLine:    rawLine,
 				Message:    "whitespace-only Zsh history line",
-			})
+			}); err != nil {
+				return err
+			}
+			return nil
 		case strings.HasPrefix(rawLine, ": "):
 			entry, warning := parseZshExtendedLine(sourceFile, lineNumber, rawLine)
 			if warning != nil {
-				warnings = append(warnings, *warning)
-				continue
+				if err := onWarning(*warning); err != nil {
+					return err
+				}
+				return nil
 			}
-			entries = append(entries, entry)
+			if err := onEntry(entry); err != nil {
+				return err
+			}
+			return nil
 		default:
-			entries = append(entries, HistoryEntry{
+			if err := onEntry(HistoryEntry{
 				Shell:      ShellZsh,
 				SourceFile: sourceFile,
 				RawLine:    rawLine,
 				Command:    rawLine,
-			})
+			}); err != nil {
+				return err
+			}
+			return nil
 		}
+	}); err != nil {
+		return wrapHistoryReadError("Zsh", sourceFile, err)
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, nil, fmt.Errorf("read Zsh history from %q: %w", sourceFile, err)
-	}
-
-	return entries, warnings, nil
+	return nil
 }
 
 func parseZshExtendedLine(sourceFile string, lineNumber int, rawLine string) (HistoryEntry, *ParseWarning) {

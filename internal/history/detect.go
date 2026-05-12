@@ -9,6 +9,7 @@ import (
 )
 
 type Parser func(sourceFile string, r io.Reader) ([]HistoryEntry, []ParseWarning, error)
+type StreamParser func(sourceFile string, r io.Reader, onEntry func(HistoryEntry) error, onWarning func(ParseWarning) error) error
 
 type Source struct {
 	Shell string
@@ -81,6 +82,17 @@ func ParserForShell(shell string) (Parser, error) {
 		return ParseBash, nil
 	case ShellZsh:
 		return ParseZsh, nil
+	default:
+		return nil, fmt.Errorf("unsupported shell %q", shell)
+	}
+}
+
+func StreamParserForShell(shell string) (StreamParser, error) {
+	switch shell {
+	case ShellBash:
+		return StreamBash, nil
+	case ShellZsh:
+		return StreamZsh, nil
 	default:
 		return nil, fmt.Errorf("unsupported shell %q", shell)
 	}

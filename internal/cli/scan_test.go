@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -151,6 +152,82 @@ func TestExecuteScanConfigPathExpandsTilde(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	if err := Execute([]string{"scan", "--config", "~/histkit.toml"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "scan complete: 1 source(s), 1 entries parsed, 1 inserted, 0 skipped, 0 warning(s).") {
+		t.Fatalf("unexpected scan output: %q", stdout.String())
+	}
+}
+
+func TestExecuteScanStreamsLargeHistoryInBatches(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	var historyContent strings.Builder
+	const entryCount = scanWriteBatchSize + 250
+	for i := 0; i < entryCount; i++ {
+		fmt.Fprintf(&historyContent, "printf 'entry-%d'\n", i)
+	}
+
+	historyPath := filepath.Join(home, ".bash_history")
+	if err := os.WriteFile(historyPath, []byte(historyContent.String()), 0o600); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	if err := Execute([]string{"scan"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+
+	expectedOutput := fmt.Sprintf(
+		"scan complete: 1 source(s), %d entries parsed, %d inserted, 0 skipped, 0 warning(s).",
+		entryCount,
+		entryCount,
+	)
+	if !strings.Contains(stdout.String(), expectedOutput) {
+		t.Fatalf("unexpected scan output: %q", stdout.String())
+	}
+
+	paths, err := config.DefaultPaths(home)
+	if err != nil {
+		t.Fatalf("DefaultPaths returned error: %v", err)
+	}
+
+	db, err := index.Open(paths.HistoryDB)
+	if err != nil {
+		t.Fatalf("Open returned error: %v", err)
+	}
+	defer db.Close()
+
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM history_entries;`).Scan(&count); err != nil {
+		t.Fatalf("QueryRow(count) returned error: %v", err)
+	}
+	if count != entryCount {
+		t.Fatalf("history entry count = %d, want %d", count, entryCount)
+	}
+}
+
+func TestExecuteScanAcceptsLongHistoryLine(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	longCommand := strings.Repeat("x", 2*1024*1024)
+	historyPath := filepath.Join(home, ".bash_history")
+	if err := os.WriteFile(historyPath, []byte(longCommand+"\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	if err := Execute([]string{"scan"}, &stdout, &stderr); err != nil {
 		t.Fatalf("Execute returned error: %v", err)
 	}
 	if stderr.Len() != 0 {
