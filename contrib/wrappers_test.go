@@ -103,8 +103,7 @@ bind -X
 		t.Fatalf("bash bind helper failed: %v\n%s", err, output)
 	}
 
-	if !strings.Contains(string(output), `"\\C-r" "__histkit_pick_bash"`) &&
-		!strings.Contains(string(output), "\"\\C-r\" \"__histkit_pick_bash\"") {
+	if !bashBindOutputContains(string(output), `\C-r`) {
 		t.Fatalf("default bash binding missing Ctrl-R: %s", output)
 	}
 }
@@ -127,8 +126,7 @@ bind -X
 		t.Fatalf("bash bind helper failed: %v\n%s", err, output)
 	}
 
-	if !strings.Contains(string(output), `"\\C-x\\C-r" "__histkit_pick_bash"`) &&
-		!strings.Contains(string(output), "\"\\C-x\\C-r\" \"__histkit_pick_bash\"") {
+	if !bashBindOutputContains(string(output), `\C-x\C-r`) {
 		t.Fatalf("custom bash binding missing Ctrl-X Ctrl-R: %s", output)
 	}
 }
@@ -174,4 +172,11 @@ func writeFakeHistkit(t *testing.T, dir, content string) {
 	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
 		t.Fatalf("WriteFile returned error: %v", err)
 	}
+}
+
+func bashBindOutputContains(output, keyseq string) bool {
+	needle := `"` + keyseq + `"`
+
+	return strings.Contains(output, needle+` "__histkit_pick_bash"`) ||
+		strings.Contains(output, needle+`: "__histkit_pick_bash"`)
 }
