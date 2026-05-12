@@ -128,6 +128,57 @@ func TestExecuteRestoreNoBackups(t *testing.T) {
 	}
 }
 
+func TestExecuteRestoreConfigPathExpandsTilde(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	configPath := filepath.Join(home, "histkit.toml")
+	if err := os.WriteFile(configPath, []byte("[general]\nbackup_history = true\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile(config) returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	if err := Execute([]string{"restore", "--config", "~/histkit.toml"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "restore: no backups available") {
+		t.Fatalf("unexpected output: %q", stdout.String())
+	}
+}
+
+func TestExecuteRestoreMissingBackupIDLeavesHistoryUntouched(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	sourcePath := filepath.Join(home, ".bash_history")
+	original := "current\n"
+	if err := os.WriteFile(sourcePath, []byte(original), 0o600); err != nil {
+		t.Fatalf("WriteFile(source) returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	err := Execute([]string{"restore", "b_20260501T150000Z_001"}, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("expected error for missing backup ID")
+	}
+	if !strings.Contains(err.Error(), "find backup record") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, readErr := os.ReadFile(sourcePath)
+	if readErr != nil {
+		t.Fatalf("ReadFile(source) returned error: %v", readErr)
+	}
+	if string(data) != original {
+		t.Fatalf("source contents = %q, want %q", string(data), original)
+	}
+}
+
 func TestExecuteRestoreReturnsErrorButKeepsRestoredFileWhenAuditAppendFails(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

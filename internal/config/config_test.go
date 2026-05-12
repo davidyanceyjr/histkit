@@ -93,6 +93,50 @@ user_file = "~/custom-snippets.toml"
 	}
 }
 
+func TestLoadFromPathPreservesDefaultsForOmittedFields(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.toml")
+
+	content := `
+[general]
+default_shell = "zsh"
+
+[snippets]
+enabled = false
+`
+
+	if err := os.WriteFile(path, []byte(strings.TrimSpace(content)), 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+
+	if cfg.General.DefaultShell != "zsh" {
+		t.Fatalf("DefaultShell = %q, want zsh", cfg.General.DefaultShell)
+	}
+	if !cfg.General.BackupHistory {
+		t.Fatal("BackupHistory = false, want preserved default true")
+	}
+	if !cfg.General.DryRun {
+		t.Fatal("DryRun = false, want preserved default true")
+	}
+	if !cfg.General.PreviewDiff {
+		t.Fatal("PreviewDiff = false, want preserved default true")
+	}
+	if cfg.Snippets.Enabled {
+		t.Fatal("Snippets.Enabled = true, want false")
+	}
+	if !cfg.Snippets.Builtin {
+		t.Fatal("Snippets.Builtin = false, want preserved default true")
+	}
+	if cfg.Snippets.UserFile != "~/.local/share/histkit/snippets.toml" {
+		t.Fatalf("Snippets.UserFile = %q, want preserved default path", cfg.Snippets.UserFile)
+	}
+}
+
 func TestLoadExampleConfig(t *testing.T) {
 	path := filepath.Join("..", "..", "configs", "config.example.toml")
 
