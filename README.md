@@ -1,5 +1,7 @@
 # histkit
 
+[![CI](https://github.com/davidyanceyjr/histkit/actions/workflows/ci.yml/badge.svg)](https://github.com/davidyanceyjr/histkit/actions/workflows/ci.yml)
+
 `histkit` is a Linux-native CLI for shell history hygiene, reusable command snippets, and fast fuzzy command recall.
 
 It reads shell history from supported shells, builds a searchable local index, applies built-in cleanup rules conservatively, and exposes indexed history plus snippets through an `fzf`-based picker.
