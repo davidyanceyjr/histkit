@@ -56,7 +56,7 @@
 ## Known failures
 
 - None.
-- PR `#50` still needs this follow-up commit pushed and CI re-run before human review can resume.
+- PR `#50` has the follow-up commit pushed and its checks are pending again.
 
 ## Commands run
 
@@ -110,4 +110,4 @@
 
 ## Next slice recommendation
 
-- Push the CI portability fix for PR `#50`, wait for checks to return green, then resume the normal review/merge cleanup flow. After that, broader multi-source apply coverage would be the next logical increment if needed.
+- Wait for PR `#50` checks to return green, then resume the normal review/merge cleanup flow. After that, broader multi-source apply coverage would be the next logical increment if needed.

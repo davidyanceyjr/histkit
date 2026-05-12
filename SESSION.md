@@ -4,7 +4,7 @@
 
 ID: `054-readme-p1-tests`
 
-Status: in progress
+Status: awaiting CI
 
 ## Objective
 
@@ -156,7 +156,7 @@ No answered questions were recorded during this session.
   - `NON-BLOCKING`: exact-output parity is the right guard for planning-mode equivalence because the README presents `clean` and `clean --dry-run` as the same mode
 - unresolved questions:
   - none currently recorded
-- next step: stage the test and session-artifact updates, commit the CI portability fix onto branch `054-readme-p1-tests`, push, and recheck PR `#50`
+- next step: wait for PR `#50` checks to complete, then resume human review, merge, and branch cleanup if green
 
 ## End-of-session notes
 
@@ -175,11 +175,11 @@ Tests run:
 Known failures:
 
 - No test failures.
-- PR `#50` still needs this follow-up commit pushed and CI re-run before it returns to human review.
+- PR `#50` has the follow-up commit pushed and checks are pending again.
 
 Next recommended session:
 
-- Push the CI portability fix for PR `#50`, wait for checks to return green, then resume the normal human-review, merge, and branch-cleanup closeout flow.
+- Wait for PR `#50` checks to return green, then resume the normal human-review, merge, and branch-cleanup closeout flow.
 - Then add broader multi-source `clean --apply` filtering coverage so mixed shell/source combinations are exercised beyond the current one-bash one-zsh case.
 - Add command-level coverage for future config sections only when those sections become real CLI inputs; avoid speculative tests before schema expansion exists.
 - Revisit planning-mode assertions if output formatting is intentionally refactored; keep `clean` and `clean --dry-run` behavior aligned even if exact wording changes.
