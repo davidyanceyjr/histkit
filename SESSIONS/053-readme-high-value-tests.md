@@ -5,6 +5,7 @@
 - Split the README-derived high-value test plan into three parts and implemented them in sequence.
 - Added command-level safety and config-path tests for `scan`, `clean`, and `restore`.
 - Added sparse-config default-preservation coverage and sanitizer action-precedence coverage.
+- Committed the slice, pushed branch `053-readme-high-value-tests`, and opened draft PR `#49`.
 
 ## Objective completed or not completed
 
@@ -55,10 +56,13 @@
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/config`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/sanitize`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
+- `git add SESSION.md SESSIONS/053-readme-high-value-tests.md internal/cli/clean_test.go internal/cli/restore_test.go internal/cli/scan_test.go internal/config/config_test.go internal/sanitize/apply_test.go && git commit -m "Add README-driven unit test coverage"`
+- `git push -u origin 053-readme-high-value-tests`
 
 ## Known failures
 
 - None.
+- Human approval is still required before merge and branch cleanup.
 
 ## Commands run
 
@@ -78,6 +82,8 @@
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/config`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/sanitize`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
+- `git add SESSION.md SESSIONS/053-readme-high-value-tests.md internal/cli/clean_test.go internal/cli/restore_test.go internal/cli/scan_test.go internal/config/config_test.go internal/sanitize/apply_test.go && git commit -m "Add README-driven unit test coverage"`
+- `git push -u origin 053-readme-high-value-tests`
 
 ## Decisions made
 
@@ -102,4 +108,4 @@
 
 ## Next slice recommendation
 
-- Add the remaining P1 README-contract tests for invalid config-file failures and explicit `clean --dry-run` parity with bare `clean`.
+- Wait for human review on PR `#49`, then address feedback or merge and clean up the branch.
