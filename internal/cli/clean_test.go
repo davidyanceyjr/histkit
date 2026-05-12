@@ -245,6 +245,162 @@ func TestExecuteCleanConfigPathExpandsTilde(t *testing.T) {
 	}
 }
 
+func TestExecuteCleanRejectsMissingConfigPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	err := Execute([]string{"clean", "--config", "~/missing.toml"}, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("expected error for missing config path")
+	}
+	if !strings.Contains(err.Error(), `clean: load config "`) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExecuteCleanRejectsInvalidConfigTOML(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	configPath := filepath.Join(home, "histkit.toml")
+	if err := os.WriteFile(configPath, []byte("[general\nbad"), 0o600); err != nil {
+		t.Fatalf("WriteFile(config) returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	err := Execute([]string{"clean", "--config", configPath}, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("expected error for invalid config TOML")
+	}
+	if !strings.Contains(err.Error(), `clean: load config "`) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExecuteCleanDryRunFlagMatchesDefaultPlanningMode(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	historyPath := filepath.Join(home, ".bash_history")
+	original := "pwd\nmysql --password hunter2\necho hi\n"
+	if err := os.WriteFile(historyPath, []byte(original), 0o600); err != nil {
+		t.Fatalf("WriteFile(history) returned error: %v", err)
+	}
+
+	var defaultStdout bytes.Buffer
+	var defaultStderr bytes.Buffer
+	if err := Execute([]string{"clean"}, &defaultStdout, &defaultStderr); err != nil {
+		t.Fatalf("Execute(default clean) returned error: %v", err)
+	}
+	if defaultStderr.Len() != 0 {
+		t.Fatalf("expected no stderr output for default clean, got %q", defaultStderr.String())
+	}
+
+	var dryRunStdout bytes.Buffer
+	var dryRunStderr bytes.Buffer
+	if err := Execute([]string{"clean", "--dry-run"}, &dryRunStdout, &dryRunStderr); err != nil {
+		t.Fatalf("Execute(clean --dry-run) returned error: %v", err)
+	}
+	if dryRunStderr.Len() != 0 {
+		t.Fatalf("expected no stderr output for clean --dry-run, got %q", dryRunStderr.String())
+	}
+
+	if got, want := dryRunStdout.String(), defaultStdout.String(); got != want {
+		t.Fatalf("clean --dry-run output = %q, want %q", got, want)
+	}
+
+	historyContent, err := os.ReadFile(historyPath)
+	if err != nil {
+		t.Fatalf("ReadFile(history) returned error: %v", err)
+	}
+	if string(historyContent) != original {
+		t.Fatalf("history content = %q, want %q", string(historyContent), original)
+	}
+}
+
+func TestExecuteCleanApplyShellFlagFiltersToZshOnly(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	bashHistoryPath := filepath.Join(home, ".bash_history")
+	bashOriginal := "pwd\nmysql --password hunter2\n"
+	if err := os.WriteFile(bashHistoryPath, []byte(bashOriginal), 0o600); err != nil {
+		t.Fatalf("WriteFile(bash history) returned error: %v", err)
+	}
+
+	zshHistoryPath := filepath.Join(home, ".zsh_history")
+	zshOriginal := ": 1712959000:0;pwd\n: 1712959015:2;curl https://user:secret@example.com/path\n"
+	if err := os.WriteFile(zshHistoryPath, []byte(zshOriginal), 0o600); err != nil {
+		t.Fatalf("WriteFile(zsh history) returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	if err := Execute([]string{"clean", "--apply", "--shell", "zsh"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+	if got := stdout.String(); !strings.Contains(got, "clean apply: shell=zsh") {
+		t.Fatalf("unexpected apply output: %q", got)
+	}
+	if strings.Contains(stdout.String(), "shell=bash") {
+		t.Fatalf("unexpected bash apply output: %q", stdout.String())
+	}
+
+	bashHistoryContent, err := os.ReadFile(bashHistoryPath)
+	if err != nil {
+		t.Fatalf("ReadFile(bash history) returned error: %v", err)
+	}
+	if string(bashHistoryContent) != bashOriginal {
+		t.Fatalf("bash history content = %q, want %q", string(bashHistoryContent), bashOriginal)
+	}
+
+	zshHistoryContent, err := os.ReadFile(zshHistoryPath)
+	if err != nil {
+		t.Fatalf("ReadFile(zsh history) returned error: %v", err)
+	}
+	if got, want := string(zshHistoryContent), ": 1712959015:2;curl [REDACTED]/path\n"; got != want {
+		t.Fatalf("zsh history content = %q, want %q", got, want)
+	}
+
+	paths, err := config.DefaultPaths(home)
+	if err != nil {
+		t.Fatalf("DefaultPaths returned error: %v", err)
+	}
+
+	zshBackupMatches, err := filepath.Glob(filepath.Join(paths.StateDir, "backups", "*", ".zsh_history"))
+	if err != nil {
+		t.Fatalf("Glob(zsh backups) returned error: %v", err)
+	}
+	if len(zshBackupMatches) != 1 {
+		t.Fatalf("zsh backup match count = %d, want 1", len(zshBackupMatches))
+	}
+
+	bashBackupMatches, err := filepath.Glob(filepath.Join(paths.StateDir, "backups", "*", ".bash_history"))
+	if err != nil {
+		t.Fatalf("Glob(bash backups) returned error: %v", err)
+	}
+	if len(bashBackupMatches) != 0 {
+		t.Fatalf("bash backup match count = %d, want 0", len(bashBackupMatches))
+	}
+
+	auditContent, err := os.ReadFile(paths.AuditLog)
+	if err != nil {
+		t.Fatalf("ReadFile(audit log) returned error: %v", err)
+	}
+	if !strings.Contains(string(auditContent), "shell=zsh") {
+		t.Fatalf("expected audit log to contain shell=zsh, got %q", string(auditContent))
+	}
+	if strings.Contains(string(auditContent), "shell=bash") {
+		t.Fatalf("unexpected bash audit content: %q", string(auditContent))
+	}
+}
+
 func TestExecuteCleanApplyReturnsErrorButKeepsRewriteWhenAuditAppendFails(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

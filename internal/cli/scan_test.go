@@ -160,3 +160,38 @@ func TestExecuteScanConfigPathExpandsTilde(t *testing.T) {
 		t.Fatalf("unexpected scan output: %q", stdout.String())
 	}
 }
+
+func TestExecuteScanRejectsMissingConfigPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	err := Execute([]string{"scan", "--config", "~/missing.toml"}, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("expected error for missing config path")
+	}
+	if !strings.Contains(err.Error(), `scan: load config "`) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExecuteScanRejectsInvalidConfigTOML(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	configPath := filepath.Join(home, "histkit.toml")
+	if err := os.WriteFile(configPath, []byte("[general\nbad"), 0o600); err != nil {
+		t.Fatalf("WriteFile(config) returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	err := Execute([]string{"scan", "--config", configPath}, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("expected error for invalid config TOML")
+	}
+	if !strings.Contains(err.Error(), `scan: load config "`) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

@@ -2,44 +2,43 @@
 
 ## Current session
 
-ID: `053-readme-high-value-tests`
+ID: `054-readme-p1-tests`
 
 Status: awaiting human approval
 
 ## Objective
 
-Add the highest-value missing unit tests implied by the README behavior for `scan`, `clean --dry-run`, `clean --apply`, `restore`, redaction/apply precedence, and config handling.
+Add the remaining P1 README-contract unit tests for config failure handling, `clean --dry-run` planning-mode parity, and `clean --apply --shell zsh` filtering.
 
 ## Scope
 
 Implement:
 
-- split the README-derived test plan into three sequential slices
-- add CLI contract tests for `scan`, `clean`, and `restore`
-- add config-loading coverage for sparse TOML files that should preserve safe defaults
-- add sanitizer/apply precedence coverage for safer security outcomes over deletion
+- add invalid config path and invalid TOML tests for `scan`, `clean`, and `restore`
+- add explicit parity coverage for `histkit clean` and `histkit clean --dry-run`
+- add `clean --apply --shell zsh` filtering coverage to ensure apply targets only the requested shell
 
 ## Out of scope
 
-- production code changes unless tests uncover a real defect
-- broader integration coverage beyond safe temp-directory unit tests
-- additional README behavior outside the prioritized list
+- production code changes unless tests uncover a defect
+- broader integration coverage beyond safe temp-directory tests
+- remaining future config sections or sanitizer-rule expansions
 
 ## Relevant skills
 
 - `SKILLS/testing.md`
 - `SKILLS/config.md`
-- `SKILLS/backup-restore.md`
 
 ## Acceptance criteria
 
-- the prioritized test list is split into three implementation parts
-- each part is implemented in sequence with passing targeted verification
-- the full `go test ./...` suite passes after the additions
+- documented config-loading failures are covered for `scan`, `clean`, and `restore`
+- `clean` default planning mode and `clean --dry-run` are proven equivalent
+- `clean --apply --shell zsh` is covered and verified not to mutate bash history
+- the full `go test ./...` suite passes
 
 ## Current repo state
 
-Branch `053-readme-high-value-tests` contains the README-aligned test coverage additions and draft PR `#49` is open against `main`.
+Branch `054-readme-p1-tests` contains the README P1 contract test additions and draft PR work remains to be published.
 
 ## Decisions already made
 
@@ -51,15 +50,14 @@ Branch `053-readme-high-value-tests` contains the README-aligned test coverage a
 - `systemd --user` is the automation target
 - Default automation runs `scan`, not destructive apply
 - Wrapper logic stays outside the Go binary under `contrib/`
-- `pick --debug` remains the existing diagnostic path for identifying pre- and post-`fzf` boundaries
-- README-promised `--config` support should be covered consistently across `scan`, `clean`, and `restore`
-- sparse config files must preserve conservative defaults for omitted fields
-- sanitizer action precedence should continue to prefer safer security outcomes over trivial deletion when both match
+- README-promised `--config` support should fail early and consistently across `scan`, `clean`, and `restore`
+- bare `clean` and `clean --dry-run` are the same planning mode and should stay equivalent
+- `--shell` filtering during `clean --apply` must restrict mutation, backup creation, and audit logging to the selected shell source
 
 ## Risks to watch
 
-- the action-precedence test currently validates `finalAction` directly because no built-in rule set naturally exercises delete-versus-secret overlap end-to-end
-- config loading still validates parsing and default preservation, but not future config sections that do not exist yet
+- current planning-mode parity is asserted through exact output equality, so any future intentional wording drift between the two invocation paths should be reflected deliberately in tests
+- the zsh apply filtering test currently covers one bash and one zsh source; broader multi-source combinations remain outside this slice
 
 ## Open questions
 
@@ -83,99 +81,84 @@ No answered questions were recorded during this session.
 
 ## Working state
 
-- intent: add the highest-value missing README-aligned unit tests without changing runtime behavior
-- scope: `internal/cli/*_test.go`, `internal/config/config_test.go`, `internal/sanitize/apply_test.go`, `SESSION.md`, and the final session note
-- constraints: keep the slice test-only, preserve conservative defaults, use deterministic temp-directory fixtures, and leave the repository buildable at the end
+- intent: close the remaining P1 README-contract test gaps without changing runtime behavior
+- scope: `internal/cli/scan_test.go`, `internal/cli/clean_test.go`, `internal/cli/restore_test.go`, `SESSION.md`, and the final session note
+- constraints: keep the slice test-only, use deterministic temp-directory fixtures, preserve conservative behavior assertions, and leave the repository buildable at the end
 - files read:
-  - `AGENTS.md`: session workflow and closeout rules
+  - `AGENTS.md`: session workflow and closeout requirements
   - `SESSION.md`: prior session state and carry-forward structure
   - `ROADMAP.md`: roadmap boundaries for scan, clean, and restore
   - `SKILLS/testing.md`: verification expectations
   - `SKILLS/config.md`: config constraints and required tests
-  - `SKILLS/backup-restore.md`: restore safety boundaries and required tests
-  - `README.md`: behavior contract used to prioritize missing coverage
-  - `internal/cli/scan.go`: `scan` config-loading and output behavior
-  - `internal/cli/clean.go`: preview/apply branching, safety checks, and no-match behavior
-  - `internal/cli/restore.go`: listing, restore, config-loading, and audit behavior
-  - `internal/config/config.go`: default config behavior and `~` path expansion
-  - `internal/sanitize/apply.go`: action precedence logic
-  - `internal/sanitize/secrets.go`: built-in secret rule actions
-  - `internal/sanitize/trivial.go`: built-in trivial rule actions
-  - existing tests under `internal/cli`, `internal/config`, and `internal/sanitize`: current coverage baseline
+  - `internal/cli/scan.go`: config-loading flow for `scan`
+  - `internal/cli/clean.go`: planning/apply branching, config-loading, and shell filtering for `clean`
+  - `internal/cli/restore.go`: config-loading and restore/listing flow
+  - existing CLI tests under `internal/cli`: current README-aligned test baseline
 - files changed:
-  - `internal/cli/clean_test.go`: added mutual-exclusion, no-op apply artifact, and `~` config-path tests
-  - `internal/cli/scan_test.go`: added `~` config-path coverage for `scan`
-  - `internal/cli/restore_test.go`: added `~` config-path coverage and missing-backup non-mutation coverage
-  - `internal/config/config_test.go`: added sparse-config default-preservation coverage
-  - `internal/sanitize/apply_test.go`: added action-precedence tests for safer security outcomes over delete
-  - `SESSION.md`: recorded the completed test slice and closeout state
-  - `SESSIONS/053-readme-high-value-tests.md`: added the completed session note
+  - `internal/cli/scan_test.go`: added missing-config and invalid-TOML coverage for `scan`
+  - `internal/cli/clean_test.go`: added missing-config, invalid-TOML, planning-mode parity, and zsh apply-filter coverage
+  - `internal/cli/restore_test.go`: added missing-config and invalid-TOML coverage for `restore`
+  - `SESSION.md`: recorded the active session state
+  - `SESSIONS/054-readme-p1-tests.md`: added the completed session note
 - commands run:
-  - `sed -n '1,240p' SESSION.md`: reviewed the prior session record
+  - `sed -n '1,260p' SESSION.md`: reviewed prior session state
   - `sed -n '1,220p' ROADMAP.md`: reviewed roadmap boundaries
   - `sed -n '1,220p' SKILLS/testing.md`: reviewed test expectations
-  - `git status --short --branch`: confirmed the clean `main` worktree before starting and the session branch state after branching
+  - `sed -n '1,220p' SKILLS/config.md`: reviewed config constraints
+  - `git status --short --branch`: confirmed the clean `main` state before branching
   - `ls -1 SESSIONS | sort | tail -n 8`: identified the next session number
-  - `git checkout -b 053-readme-high-value-tests`: created the implementation branch
-  - `sed -n '1,220p' SKILLS/config.md`: reviewed config constraints and required tests
-  - `sed -n '1,220p' SKILLS/backup-restore.md`: reviewed backup/restore constraints and required tests
-  - `sed -n '1,240p' internal/backup/store.go`: checked missing-backup error behavior
-  - `sed -n '1,240p' internal/cli/root.go`: confirmed command dispatch context
-  - `sed -n '1,240p' internal/sanitize/trivial.go`: checked trivial rule actions
-  - `sed -n '1,260p' internal/sanitize/secrets.go`: checked secret rule actions
+  - `git checkout -b 054-readme-p1-tests`: created the implementation branch
+  - `sed -n '1,260p' internal/cli/scan_test.go`: reviewed current scan coverage
+  - `sed -n '1,320p' internal/cli/clean_test.go`: reviewed current clean coverage
+  - `sed -n '1,280p' internal/cli/restore_test.go`: reviewed current restore coverage
+  - `sed -n '1,220p' internal/cli/scan.go`: reviewed scan config-loading behavior
+  - `sed -n '1,260p' internal/cli/clean.go`: reviewed clean config-loading, planning-mode, and shell-filter behavior
+  - `sed -n '1,240p' internal/cli/restore.go`: reviewed restore config-loading behavior
   - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: passed after CLI test additions
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/config`: passed after config test additions
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/sanitize`: passed after sanitizer test additions
   - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`: passed for full repository verification
-  - `git diff -- ...`: reviewed the test-only file changes during the session
 - tests:
   - added:
-    - `TestExecuteCleanRejectsApplyAndDryRunTogether`
-    - `TestExecuteCleanApplyNoMatchesDoesNotCreateBackupOrAudit`
-    - `TestExecuteCleanConfigPathExpandsTilde`
-    - `TestExecuteScanConfigPathExpandsTilde`
-    - `TestExecuteRestoreConfigPathExpandsTilde`
-    - `TestExecuteRestoreMissingBackupIDLeavesHistoryUntouched`
-    - `TestLoadFromPathPreservesDefaultsForOmittedFields`
-    - `TestFinalActionPrefersSaferSecurityOutcomeOverDelete`
+    - `TestExecuteScanRejectsMissingConfigPath`
+    - `TestExecuteScanRejectsInvalidConfigTOML`
+    - `TestExecuteCleanRejectsMissingConfigPath`
+    - `TestExecuteCleanRejectsInvalidConfigTOML`
+    - `TestExecuteCleanDryRunFlagMatchesDefaultPlanningMode`
+    - `TestExecuteCleanApplyShellFlagFiltersToZshOnly`
+    - `TestExecuteRestoreRejectsMissingConfigPath`
+    - `TestExecuteRestoreRejectsInvalidConfigTOML`
   - changed: none
   - run:
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
-    - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/config`
-    - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/sanitize`
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
   - skipped: none
   - failing: none
 - decisions:
-  - split implementation into three slices: CLI safety/config-path tests, sparse-config defaults, and sanitizer precedence
-  - cover README `--config` behavior through command-level tests instead of deeper helper-only tests
-  - validate precedence directly through `finalAction` because the current built-in rules do not naturally generate a delete-plus-secret overlap in one command
+  - keep all remaining P1 coverage in `internal/cli/*_test.go` because the README contract lives at the command layer
+  - assert `clean` planning-mode parity through exact stdout equality to protect user-visible behavior
+  - verify zsh apply filtering by checking rewritten content, backup scope, and audit scope together
 - assumptions:
-  - `NON-BLOCKING`: direct `finalAction` tests are sufficient to protect the documented safety ordering until a real overlapping built-in rule pair exists
+  - `NON-BLOCKING`: exact-output parity is the right guard for planning-mode equivalence because the README presents `clean` and `clean --dry-run` as the same mode
 - unresolved questions:
   - none currently recorded
-- next step: wait for human review and approval on PR `#49`, then merge and clean up branch state
+- next step: stage the test and session files, commit the slice, push the branch, and open a PR for review
 
 ## End-of-session notes
 
 Summary:
 
-- Split the README-derived plan into three implementation parts and completed them in sequence.
-- Added missing CLI safety/config-path tests, sparse-config default-preservation coverage, and sanitizer precedence coverage.
-- Verified the full repository test suite, committed the changes, pushed branch `053-readme-high-value-tests`, and opened draft PR `#49`.
+- Added the remaining P1 README-contract tests for config-loading failures, planning-mode parity, and zsh apply-shell filtering.
+- Verified the CLI package and the full repository test suite after the additions.
 
 Tests run:
 
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
-- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/config`
-- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/sanitize`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
 
 Known failures:
 
 - No test failures.
-- Merge and local/remote branch cleanup are pending human approval on PR `#49`.
+- Merge and branch cleanup remain pending human approval after PR creation.
 
 Next recommended session:
 
-- After human review on PR `#49`, either address review feedback or merge and clean up the branch.
+- After review, merge this test slice and clean up the branch; the next likely coverage increment would be broader multi-source apply filtering or future config-section behavior once those sections exist.
