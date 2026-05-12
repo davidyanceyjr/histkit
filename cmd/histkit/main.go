@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"histkit/internal/cli"
+	"github.com/davidyanceyjr/histkit/internal/cli"
 )
 
 func main() {

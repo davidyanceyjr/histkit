@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"histkit/internal/sanitize"
+	"github.com/davidyanceyjr/histkit/internal/sanitize"
 )
 
 func TestAppendCreatesLogFileAndDirectory(t *testing.T) {

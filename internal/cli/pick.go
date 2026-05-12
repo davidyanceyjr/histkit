@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"histkit/internal/config"
-	"histkit/internal/index"
-	"histkit/internal/picker"
-	"histkit/internal/snippets"
+	"github.com/davidyanceyjr/histkit/internal/config"
+	"github.com/davidyanceyjr/histkit/internal/index"
+	"github.com/davidyanceyjr/histkit/internal/picker"
+	"github.com/davidyanceyjr/histkit/internal/snippets"
 )
 
 const defaultPickHistoryLimit = 200

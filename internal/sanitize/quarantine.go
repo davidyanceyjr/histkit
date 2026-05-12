@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"histkit/internal/history"
+	"github.com/davidyanceyjr/histkit/internal/history"
 )
 
 const quarantinedPlaceholder = "[QUARANTINED]"

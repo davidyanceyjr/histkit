@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"histkit/internal/index"
-	"histkit/internal/snippets"
+	"github.com/davidyanceyjr/histkit/internal/index"
+	"github.com/davidyanceyjr/histkit/internal/snippets"
 )
 
 const (

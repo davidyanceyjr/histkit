@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"histkit/internal/config"
-	"histkit/internal/history"
-	"histkit/internal/index"
-	"histkit/internal/snippets"
+	"github.com/davidyanceyjr/histkit/internal/config"
+	"github.com/davidyanceyjr/histkit/internal/history"
+	"github.com/davidyanceyjr/histkit/internal/index"
+	"github.com/davidyanceyjr/histkit/internal/snippets"
 )
 
 func TestExecutePickHelp(t *testing.T) {

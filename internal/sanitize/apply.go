@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"histkit/internal/history"
+	"github.com/davidyanceyjr/histkit/internal/history"
 )
 
 type ApplyReport struct {

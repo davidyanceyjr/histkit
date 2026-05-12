@@ -3,7 +3,7 @@ package sanitize
 import (
 	"testing"
 
-	"histkit/internal/history"
+	"github.com/davidyanceyjr/histkit/internal/history"
 )
 
 func TestBuiltinSecretRulesValidate(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"histkit/internal/history"
+	"github.com/davidyanceyjr/histkit/internal/history"
 )
 
 func TestBuiltinTrivialRulesValidate(t *testing.T) {

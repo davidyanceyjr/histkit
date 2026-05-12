@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"histkit/internal/config"
-	"histkit/internal/index"
+	"github.com/davidyanceyjr/histkit/internal/config"
+	"github.com/davidyanceyjr/histkit/internal/index"
 )
 
 func runStats(args []string, stdout io.Writer) error {
