@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"histkit/internal/config"
-	"histkit/internal/doctor"
+	"github.com/davidyanceyjr/histkit/internal/config"
+	"github.com/davidyanceyjr/histkit/internal/doctor"
 )
 
 func runDoctor(args []string, stdout io.Writer) error {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"histkit/internal/config"
+	"github.com/davidyanceyjr/histkit/internal/config"
 )
 
 func TestExecuteCleanHelp(t *testing.T) {

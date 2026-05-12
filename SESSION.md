@@ -2,30 +2,27 @@
 
 ## Current session
 
-ID: `047-pick-fzf-tty-wiring`
+ID: `048-module-path-github`
 
 Status: completed
 
 ## Objective
 
-Make `histkit pick` mirror `fzf` interactive output to the controlling terminal while preserving stdout capture for the selected command.
+Update the Go module path from `histkit` to `github.com/davidyanceyjr/histkit` and rewrite in-repo self-imports to match the GitHub-compatible module path.
 
 ## Scope
 
 Implement:
 
-- update `internal/picker/fzf.go` so `fzf` stderr is mirrored to the controlling TTY when available
-- preserve the existing picker contract: selected command returned to stdout, no shell-history mutation, no snippet expansion
-- extend picker tests to cover TTY mirroring and fallback behavior without requiring a real interactive terminal
-- carry the uncommitted `046` planning artifacts forward in this slice
+- update `go.mod` to declare `module github.com/davidyanceyjr/histkit`
+- rewrite in-repo imports that currently use `histkit/internal/...`
+- verify the repository still builds and tests cleanly after the module-path migration
 
 ## Out of scope
 
-- changing picker candidate semantics
-- changing shell wrapper behavior in `contrib/`
-- changing SQLite behavior, retries, or lock handling
-- broad CLI debug infrastructure beyond the existing `pick --debug`
-- README or broader documentation updates
+- behavioral changes unrelated to module identity
+- package renames or directory layout changes
+- broad documentation refresh beyond references required for correct Go usage
 
 ## Relevant skills
 
@@ -34,13 +31,13 @@ Implement:
 
 ## Acceptance criteria
 
-- interactive `fzf` output is no longer confined to an internal stderr buffer when a controlling TTY is available
-- `histkit pick` still returns the selected command cleanly on stdout
-- picker tests cover success, abort, missing `fzf`, tty mirroring, and no-tty fallback behavior
+- `go.mod` declares `github.com/davidyanceyjr/histkit`
+- all in-repo imports resolve against the GitHub-qualified module path
+- `go test ./...` passes without requiring replace directives for the local module name
 
 ## Current repo state
 
-Branch `047-pick-fzf-tty-wiring` contains the completed `fzf` TTY-wiring slice and the carried-forward `046` planning artifacts. An unrelated untracked file `1` exists in the worktree and was left untouched.
+Branch `048-module-path-github` contains the completed module-path migration from `histkit` to `github.com/davidyanceyjr/histkit`.
 
 ## Decisions already made
 
@@ -56,8 +53,8 @@ Branch `047-pick-fzf-tty-wiring` contains the completed `fzf` TTY-wiring slice a
 
 ## Risks to watch
 
-- The current fix mirrors `fzf` stderr to the controlling TTY but still feeds candidates through stdin; if a specific environment needs stronger TTY ownership than stderr mirroring, a follow-up slice may still be required.
-- Tests validate the launch seam with fake scripts and fake TTY files, not a full interactive terminal session.
+- missing a self-import would leave the repo in a non-buildable state
+- documentation or external consumer references might still mention the placeholder module path after the code migration
 
 ## Open questions
 
@@ -77,75 +74,71 @@ Every answered question must be recorded here before it is removed from the acti
 
 ### Answered this session
 
-- Question: Should the implementation prefer inheriting parent stdio directly or opening `/dev/tty` explicitly for `fzf`?
-  - Answer: Open `/dev/tty` explicitly and mirror `fzf` stderr to it while keeping stdout buffered for the selected command.
-  - Source: `047-pick-fzf-tty-wiring` implementation in `internal/picker/fzf.go`
+No answered questions were recorded during this session.
 
 ## Working state
 
-- intent: make `histkit pick` show `fzf` interactive output through the controlling terminal without breaking selected-command stdout capture
-- scope: `internal/picker/fzf.go`, `internal/picker/fzf_test.go`, `SESSION.md`, `SESSIONS/046-pick-fzf-tty-wiring-plan.md`, and `SESSIONS/047-pick-fzf-tty-wiring.md`
-- constraints: preserve non-destructive behavior, keep selected-command stdout contract intact, avoid shell-history mutation, avoid broad picker rewrites, leave unrelated untracked file `1` untouched
+- intent: update the module path to the GitHub-qualified identifier and keep the repository buildable
+- scope: `go.mod`, all Go files with `histkit/internal/...` imports, `SESSION.md`, and the final session note
+- constraints: preserve behavior, avoid package layout changes, keep the repo buildable at the end of the slice, and document any remaining references that do not affect correctness
 - files read:
   - `AGENTS.md`: required workflow, session-record rules, and open-question protocol
-  - `SESSION.md`: carried-forward planning context and implementation target
-  - `ROADMAP.md`: roadmap boundaries for `pick`
-  - `SKILLS/go-cli.md`: CLI constraints relevant to keeping picker behavior narrow
-  - `SKILLS/testing.md`: test expectations and deterministic-fixture requirements
-  - `internal/picker/fzf.go`: current buffered `fzf` launch implementation
-  - `internal/picker/fzf_test.go`: existing picker tests and fake `fzf` seam
+  - `SESSION.md`: active session state and carry-forward structure
+  - `ROADMAP.md`: roadmap boundaries and slice discipline
+  - `SKILLS/go-cli.md`: Go CLI implementation constraints
+  - `SKILLS/testing.md`: verification expectations
+  - `go.mod`: current module declaration
 - files changed:
-  - `internal/picker/fzf.go`: mirrored `fzf` stderr to `/dev/tty` when available while preserving buffered stderr capture for error reporting
-  - `internal/picker/fzf_test.go`: added fake-TTY coverage and no-TTY fallback assertions; updated existing selection/abort tests to use the new seam
-  - `SESSION.md`: recorded the completed session state for slice 047
-  - `SESSIONS/046-pick-fzf-tty-wiring-plan.md`: carried forward the planning note created in the prior uncommitted slice
-  - `SESSIONS/047-pick-fzf-tty-wiring.md`: recorded the completed implementation session
+  - `go.mod`: changed the module declaration to `github.com/davidyanceyjr/histkit`
+  - `cmd/histkit/main.go`: updated the root CLI import path
+  - `internal/cli/pick.go`, `internal/cli/restore.go`, `internal/cli/restore_test.go`, `internal/cli/clean.go`, `internal/cli/clean_test.go`, `internal/cli/stats.go`, `internal/cli/scan.go`, `internal/cli/scan_test.go`, `internal/cli/doctor.go`, `internal/cli/pick_test.go`: rewrote self-imports to the GitHub-qualified module path
+  - `internal/picker/candidates.go`, `internal/picker/candidates_test.go`: rewrote self-imports to the GitHub-qualified module path
+  - `internal/doctor/checks.go`: rewrote self-imports to the GitHub-qualified module path
+  - `internal/index/picker.go`, `internal/index/picker_test.go`, `internal/index/writer.go`, `internal/index/writer_test.go`: rewrote self-imports to the GitHub-qualified module path
+  - `internal/audit/model.go`, `internal/audit/log_test.go`, `internal/audit/model_test.go`: rewrote self-imports to the GitHub-qualified module path
+  - `internal/sanitize/apply.go`, `internal/sanitize/apply_test.go`, `internal/sanitize/matcher.go`, `internal/sanitize/matcher_test.go`, `internal/sanitize/preview.go`, `internal/sanitize/preview_test.go`, `internal/sanitize/quarantine.go`, `internal/sanitize/quarantine_test.go`, `internal/sanitize/secrets.go`, `internal/sanitize/secrets_test.go`, `internal/sanitize/trivial.go`, `internal/sanitize/trivial_test.go`: rewrote self-imports to the GitHub-qualified module path
+  - `SESSION.md`: recorded the completed module-path migration session
+  - `SESSIONS/048-module-path-github.md`: added the completed session note
 - commands run:
-  - `git checkout -b 047-pick-fzf-tty-wiring`: created the implementation branch from the planning branch
-  - `sed -n '1,260p' SESSION.md`: refreshed planning context and constraints
-  - `sed -n '1,220p' internal/picker/fzf.go`: reviewed the current `fzf` launch path
-  - `sed -n '1,260p' internal/picker/fzf_test.go`: reviewed picker tests
-  - `gofmt -w internal/picker/fzf.go internal/picker/fzf_test.go`: formatted the touched Go files
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/picker`: verified picker tests including the new TTY seam coverage
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: verified `pick` CLI behavior still passes
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`: verified the full repository test suite
-  - `git status --short --branch`: reviewed the worktree and preserved unrelated untracked file `1`
-  - `git diff -- internal/picker/fzf.go internal/picker/fzf_test.go SESSION.md SESSIONS/046-pick-fzf-tty-wiring-plan.md`: reviewed the final implementation diff
+  - `git status --short --branch`: confirmed the starting worktree state
+  - `git branch --show-current`: confirmed the starting branch
+  - `git checkout -b 048-module-path-github`: created the implementation branch
+  - `sed -n '1,220p' SESSION.md`: reviewed active session context
+  - `sed -n '1,220p' ROADMAP.md`: reviewed roadmap boundaries
+  - `sed -n '1,220p' SKILLS/go-cli.md`: reviewed Go CLI constraints
+  - `sed -n '1,220p' SKILLS/testing.md`: refreshed the test expectations for this slice
+  - `sed -n '1,120p' go.mod`: reviewed the existing module declaration
+  - `rg -n '"histkit(/|"$)' -g'*.go' -g'go.mod' -g'*.md'`: identified the self-import migration surface
+  - `python - <<'PY' ... PY`: performed the mechanical module-path replacement across `go.mod`, `cmd/`, and `internal/`
+  - `gofmt -w $(rg -l 'github.com/davidyanceyjr/histkit/' cmd internal)`: formatted the touched Go files
+  - `rg -n 'module histkit|"histkit/' go.mod cmd internal README.md docs contrib SESSION.md SESSIONS DECISIONS.md RISKS.md`: verified no stale self-import or module declaration remained in code
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`: verified the full repository test suite under the new module path
 - tests:
-  - added:
-    - `TestSelectMirrorsFZFStderrToTTYWhenAvailable`
-    - `TestSelectReturnsCapturedErrorWhenTTYUnavailable`
-  - changed:
-    - `TestSelectReturnsChosenCandidate`
-    - `TestSelectReturnsNoSelectionForAbort`
+  - added: none
+  - changed: none
   - run:
-    - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/picker`
-    - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
   - skipped: none
   - failing: none
 - decisions:
-  - open `/dev/tty` explicitly for the interactive `fzf` output channel instead of inheriting the process stderr blindly
-  - mirror `fzf` stderr to both the TTY and an internal buffer so user-visible UI and returned error text can coexist
-  - keep the fix inside the picker layer and avoid any shell-wrapper contract changes
+  - keep this slice focused on module identity and import resolution only
+  - preserve the `histkit` executable name and user-facing CLI references; only the Go module path changes in this slice
 - assumptions:
-  - `NON-BLOCKING`: mirroring `fzf` stderr to the TTY is sufficient to fix the observed hidden-UI behavior while keeping stdout capture intact
+  - `NON-BLOCKING`: documentation references to `histkit` as the CLI binary name do not need changes because the deliverable is the Go module path, not the executable name
 - unresolved questions:
   - none currently recorded
-- next step: push the slice branch, open a PR, and wait for human approval before merge and cleanup; if user testing still shows hidden `fzf`, investigate whether stdin or broader stdio inheritance also needs TTY ownership
+- next step: push the branch, open a draft PR, and wait for human approval before merge and cleanup
 
 ## End-of-session notes
 
 Summary:
 
-- Updated the picker so `fzf` interactive stderr is mirrored to `/dev/tty` when available, while stdout remains buffered for the selected command.
-- Added picker tests for TTY mirroring and no-TTY fallback, and kept the existing selection and abort behavior intact.
-- Carried the prior `046` planning note forward with this implementation slice.
+- Updated `go.mod` to `module github.com/davidyanceyjr/histkit`.
+- Rewrote all in-repo `histkit/internal/...` imports to the GitHub-qualified module path.
+- Verified the repository passes `go test ./...` after the module-path migration.
 
 Tests run:
 
-- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/picker`
-- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
 
 Known failures:
@@ -154,4 +147,4 @@ Known failures:
 
 Next recommended session:
 
-- `048-pick-tty-follow-up` if user testing shows that stderr mirroring alone is insufficient in some terminals
+- Optional README install-path follow-up if explicit `go install` documentation is needed

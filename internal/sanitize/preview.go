@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"histkit/internal/history"
+	"github.com/davidyanceyjr/histkit/internal/history"
 )
 
 type PreviewItem struct {

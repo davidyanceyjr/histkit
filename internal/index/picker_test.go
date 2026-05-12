@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"histkit/internal/history"
+	"github.com/davidyanceyjr/histkit/internal/history"
 )
 
 func TestQueryRecentHistoryEntriesOrdersNewestFirst(t *testing.T) {

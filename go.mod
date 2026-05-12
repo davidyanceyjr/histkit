@@ -1,4 +1,4 @@
-module histkit
+module github.com/davidyanceyjr/histkit
 
 go 1.26
 

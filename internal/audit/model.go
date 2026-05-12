@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"histkit/internal/sanitize"
+	"github.com/davidyanceyjr/histkit/internal/sanitize"
 )
 
 type Record struct {

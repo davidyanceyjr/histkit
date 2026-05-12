@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"histkit/internal/config"
-	"histkit/internal/history"
+	"github.com/davidyanceyjr/histkit/internal/config"
+	"github.com/davidyanceyjr/histkit/internal/history"
 )
 
 const (

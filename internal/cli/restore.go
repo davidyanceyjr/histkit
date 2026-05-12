@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"histkit/internal/audit"
-	"histkit/internal/backup"
-	"histkit/internal/config"
-	"histkit/internal/history"
-	"histkit/internal/sanitize"
+	"github.com/davidyanceyjr/histkit/internal/audit"
+	"github.com/davidyanceyjr/histkit/internal/backup"
+	"github.com/davidyanceyjr/histkit/internal/config"
+	"github.com/davidyanceyjr/histkit/internal/history"
+	"github.com/davidyanceyjr/histkit/internal/sanitize"
 )
 
 func runRestore(args []string, stdout io.Writer) error {

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"histkit/internal/config"
-	"histkit/internal/index"
+	"github.com/davidyanceyjr/histkit/internal/config"
+	"github.com/davidyanceyjr/histkit/internal/index"
 )
 
 func TestExecuteScanHelp(t *testing.T) {

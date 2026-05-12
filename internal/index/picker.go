@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"histkit/internal/history"
+	"github.com/davidyanceyjr/histkit/internal/history"
 )
 
 func QueryRecentHistoryEntries(db *sql.DB, limit int) ([]history.HistoryEntry, error) {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"histkit/internal/history"
+	"github.com/davidyanceyjr/histkit/internal/history"
 )
 
 type HeuristicFunc func(command string) bool

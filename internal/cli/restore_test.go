@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"histkit/internal/backup"
-	"histkit/internal/config"
+	"github.com/davidyanceyjr/histkit/internal/backup"
+	"github.com/davidyanceyjr/histkit/internal/config"
 )
 
 func TestExecuteRestoreHelp(t *testing.T) {

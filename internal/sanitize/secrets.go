@@ -1,6 +1,6 @@
 package sanitize
 
-import "histkit/internal/history"
+import "github.com/davidyanceyjr/histkit/internal/history"
 
 func BuiltinSecretRules() []Rule {
 	return []Rule{
