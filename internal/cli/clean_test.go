@@ -138,6 +138,19 @@ func TestExecuteCleanApplyRewritesHistoryCreatesBackupAndAudit(t *testing.T) {
 	}
 }
 
+func TestExecuteCleanRejectsApplyAndDryRunTogether(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	err := Execute([]string{"clean", "--apply", "--dry-run"}, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("expected error for mutually exclusive flags")
+	}
+	if !strings.Contains(err.Error(), "mutually exclusive") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestExecuteCleanApplyRequiresBackupHistory(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -160,6 +173,75 @@ func TestExecuteCleanApplyRequiresBackupHistory(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "backup_history=true") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExecuteCleanApplyNoMatchesDoesNotCreateBackupOrAudit(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	historyPath := filepath.Join(home, ".bash_history")
+	original := "echo hi\nprintf 'done\\n'\n"
+	if err := os.WriteFile(historyPath, []byte(original), 0o600); err != nil {
+		t.Fatalf("WriteFile(history) returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	if err := Execute([]string{"clean", "--apply"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "no matching entries") {
+		t.Fatalf("unexpected output: %q", stdout.String())
+	}
+
+	historyContent, err := os.ReadFile(historyPath)
+	if err != nil {
+		t.Fatalf("ReadFile(history) returned error: %v", err)
+	}
+	if string(historyContent) != original {
+		t.Fatalf("history content = %q, want %q", string(historyContent), original)
+	}
+
+	paths, err := config.DefaultPaths(home)
+	if err != nil {
+		t.Fatalf("DefaultPaths returned error: %v", err)
+	}
+
+	backupMatches, err := filepath.Glob(filepath.Join(paths.StateDir, "backups", "*"))
+	if err != nil {
+		t.Fatalf("Glob returned error: %v", err)
+	}
+	if len(backupMatches) != 0 {
+		t.Fatalf("backup match count = %d, want 0", len(backupMatches))
+	}
+	if _, err := os.Stat(paths.AuditLog); !os.IsNotExist(err) {
+		t.Fatalf("audit log stat error = %v, want not exists", err)
+	}
+}
+
+func TestExecuteCleanConfigPathExpandsTilde(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	configPath := filepath.Join(home, "histkit.toml")
+	if err := os.WriteFile(configPath, []byte("[general]\nbackup_history = true\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile(config) returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	if err := Execute([]string{"clean", "--config", "~/histkit.toml"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "clean: no history sources detected") {
+		t.Fatalf("unexpected output: %q", stdout.String())
 	}
 }
 

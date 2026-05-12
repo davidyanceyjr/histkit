@@ -100,3 +100,36 @@ func TestApplyToSourceRejectsUnsupportedShell(t *testing.T) {
 		t.Fatal("expected error for unsupported shell")
 	}
 }
+
+func TestFinalActionPrefersSaferSecurityOutcomeOverDelete(t *testing.T) {
+	tests := []struct {
+		name    string
+		matches []RuleMatch
+		want    ActionType
+	}{
+		{
+			name: "redact beats delete",
+			matches: []RuleMatch{
+				{RuleName: "pwd-command", Reason: "Drop trivial working-directory checks", Confidence: ConfidenceHigh, Action: ActionDelete, Before: "pwd"},
+				{RuleName: "inline-password-flag", Reason: "Redact inline password values", Confidence: ConfidenceHigh, Action: ActionRedact, Before: "pwd", After: "pwd [REDACTED]"},
+			},
+			want: ActionRedact,
+		},
+		{
+			name: "quarantine beats delete",
+			matches: []RuleMatch{
+				{RuleName: "clear-command", Reason: "Drop trivial terminal clear commands", Confidence: ConfidenceHigh, Action: ActionDelete, Before: "clear"},
+				{RuleName: "private-key-block", Reason: "Quarantine pasted private key material", Confidence: ConfidenceHigh, Action: ActionQuarantine, Before: "clear"},
+			},
+			want: ActionQuarantine,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := finalAction(tc.matches); got != tc.want {
+				t.Fatalf("finalAction(...) = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

@@ -133,3 +133,30 @@ func TestExecuteScanRejectsUnsupportedShell(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestExecuteScanConfigPathExpandsTilde(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	historyPath := filepath.Join(home, ".bash_history")
+	if err := os.WriteFile(historyPath, []byte("pwd\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile(history) returned error: %v", err)
+	}
+
+	configPath := filepath.Join(home, "histkit.toml")
+	if err := os.WriteFile(configPath, []byte("[general]\ndefault_shell = \"bash\"\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile(config) returned error: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	if err := Execute([]string{"scan", "--config", "~/histkit.toml"}, &stdout, &stderr); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "scan complete: 1 source(s), 1 entries parsed, 1 inserted, 0 skipped, 0 warning(s).") {
+		t.Fatalf("unexpected scan output: %q", stdout.String())
+	}
+}
