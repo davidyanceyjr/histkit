@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/davidyanceyjr/histkit/internal/fsroot"
 	_ "modernc.org/sqlite"
 )
 
@@ -16,21 +17,29 @@ func Open(path string) (*sql.DB, error) {
 		return nil, fmt.Errorf("open sqlite database: path is required")
 	}
 
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+	absolutePath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, fmt.Errorf("open sqlite database %q: resolve absolute path: %w", path, err)
+	}
+	root, err := fsroot.New(filepath.Dir(absolutePath))
+	if err != nil {
+		return nil, fmt.Errorf("open sqlite database %q: %w", path, err)
+	}
+	if err := os.MkdirAll(root.Path(), 0o700); err != nil {
 		return nil, fmt.Errorf("open sqlite database %q: %w", path, err)
 	}
 
-	file, err := os.OpenFile(path, os.O_CREATE, 0o600)
+	file, err := root.OpenFile(filepath.Base(absolutePath), os.O_CREATE, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite database %q: %w", path, err)
 	}
 	if err := file.Close(); err != nil {
-		return nil, fmt.Errorf("close sqlite database bootstrap file %q: %w", path, err)
+		return nil, fmt.Errorf("close sqlite database bootstrap file %q: %w", absolutePath, err)
 	}
 
-	db, err := sql.Open("sqlite", path)
+	db, err := sql.Open("sqlite", absolutePath)
 	if err != nil {
-		return nil, fmt.Errorf("open sqlite database %q: %w", path, err)
+		return nil, fmt.Errorf("open sqlite database %q: %w", absolutePath, err)
 	}
 
 	return db, nil

@@ -31,6 +31,43 @@ func TestWriteRecordAndLoadRecord(t *testing.T) {
 	}
 }
 
+func TestWriteRecordAndLoadRecordWithRelativePaths(t *testing.T) {
+	tempDir := t.TempDir()
+	backupDir := filepath.Join("nested", "backups")
+	record := Record{
+		ID:         "b_20260501T140000Z_001",
+		SourceFile: filepath.Join(tempDir, ".bash_history"),
+		BackupPath: filepath.Join(tempDir, "nested", "backups", "b_20260501T140000Z_001", ".bash_history"),
+		CreatedAt:  time.Date(2026, 5, 1, 14, 0, 0, 0, time.UTC),
+		Checksum:   "sha256:abc",
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("Chdir(tempDir) returned error: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(wd); err != nil {
+			t.Fatalf("restore working directory: %v", err)
+		}
+	})
+
+	if err := WriteRecord(record, backupDir); err != nil {
+		t.Fatalf("WriteRecord returned error: %v", err)
+	}
+
+	loaded, err := LoadRecord(filepath.Join(backupDir, record.ID, recordFileName))
+	if err != nil {
+		t.Fatalf("LoadRecord returned error: %v", err)
+	}
+	if loaded != record {
+		t.Fatalf("loaded record = %#v, want %#v", loaded, record)
+	}
+}
+
 func TestListRecordsSortsNewestFirst(t *testing.T) {
 	tempDir := t.TempDir()
 	backupDir := filepath.Join(tempDir, "backups")
@@ -65,6 +102,43 @@ func TestListRecordsSortsNewestFirst(t *testing.T) {
 	}
 	if records[0].ID != newer.ID || records[1].ID != older.ID {
 		t.Fatalf("record order = [%s %s], want [%s %s]", records[0].ID, records[1].ID, newer.ID, older.ID)
+	}
+}
+
+func TestFindRecordWithRelativeBackupDir(t *testing.T) {
+	tempDir := t.TempDir()
+	backupDir := filepath.Join("state", "backups")
+	record := Record{
+		ID:         "b_20260501T140000Z_001",
+		SourceFile: filepath.Join(tempDir, ".bash_history"),
+		BackupPath: filepath.Join(tempDir, "state", "backups", "b_20260501T140000Z_001", ".bash_history"),
+		CreatedAt:  time.Date(2026, 5, 1, 14, 0, 0, 0, time.UTC),
+		Checksum:   "sha256:abc",
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("Chdir(tempDir) returned error: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(wd); err != nil {
+			t.Fatalf("restore working directory: %v", err)
+		}
+	})
+
+	if err := WriteRecord(record, backupDir); err != nil {
+		t.Fatalf("WriteRecord returned error: %v", err)
+	}
+
+	found, err := FindRecord(backupDir, record.ID)
+	if err != nil {
+		t.Fatalf("FindRecord returned error: %v", err)
+	}
+	if found != record {
+		t.Fatalf("found record = %#v, want %#v", found, record)
 	}
 }
 
