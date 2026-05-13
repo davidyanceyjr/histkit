@@ -2,44 +2,46 @@
 
 ## Current session
 
-ID: `054-readme-p1-tests`
+ID: `055-clean-apply-shell-matrix`
 
-Status: awaiting CI
+Status: ready for PR
 
 ## Objective
 
-Close PR `#50` in a buildable state by keeping the completed P1 README-contract test slice green under GitHub Actions.
+Broaden command-level `clean --apply --shell` coverage so shell filtering is verified across the supported source-presence and match/no-match combinations.
 
 ## Scope
 
 Implement:
 
-- preserve the completed README-contract tests for config failures, planning-mode parity, and zsh apply filtering
-- fix the GitHub Actions `contrib` bash binding assertions so they accept runner-specific `bind -X` output formatting
-- re-verify the affected tests and the full repository suite before pushing
+- add command-level tests for mixed bash/zsh source presence with `--apply --shell`
+- verify selected-shell-only rewrite, backup, and audit behavior
+- verify no-op behavior when the selected shell has no detected source
+- verify no-op behavior when the selected shell source exists but has no matching entries
 
 ## Out of scope
 
-- production code changes unless tests uncover a defect
-- broader integration coverage beyond safe temp-directory tests
-- remaining future config sections or sanitizer-rule expansions
+- production code changes unless the new command tests uncover a defect
+- parser, sanitizer, backup, or audit implementation changes
+- support for multiple history files per shell beyond the current detector contract
 
 ## Relevant skills
 
 - `SKILLS/testing.md`
-- `SKILLS/config.md`
+- `SKILLS/backup-restore.md`
 
 ## Acceptance criteria
 
-- documented config-loading failures remain covered for `scan`, `clean`, and `restore`
-- `clean` default planning mode and `clean --dry-run` remain proven equivalent
-- `clean --apply --shell zsh` remains covered and verified not to mutate bash history
-- `contrib` bash binding tests pass across the observed `bind -X` output variants
-- the full `go test ./...` suite passes
+- mixed bash/zsh presence is covered for `clean --apply --shell`
+- only the selected shell source is rewritten
+- only the selected shell source gets a backup and audit record
+- selecting a shell with no detected source produces a no-op without backups or audit output
+- selecting a shell with a detected source but no matches produces a no-op without backups or audit output
+- `go test ./internal/cli` and `go test ./...` pass
 
 ## Current repo state
 
-Branch `054-readme-p1-tests` contains the README P1 contract test additions, a follow-up CI portability fix in `contrib/wrappers_test.go`, and draft PR `#50` open against `main`.
+Branch `055-clean-apply-shell-matrix` contains command-level test additions in `internal/cli/clean_test.go` only. The prior README contract slice from PR `#50` is already merged on `main`.
 
 ## Decisions already made
 
@@ -54,13 +56,12 @@ Branch `054-readme-p1-tests` contains the README P1 contract test additions, a f
 - README-promised `--config` support should fail early and consistently across `scan`, `clean`, and `restore`
 - bare `clean` and `clean --dry-run` are the same planning mode and should stay equivalent
 - `--shell` filtering during `clean --apply` must restrict mutation, backup creation, and audit logging to the selected shell source
-- bash binding tests should assert the registered function/key sequence, not overfit to one exact `bind -X` formatting variant
+- shell-filter follow-up coverage should stay at the command layer because the contract spans detection, rewrite, backup, and audit together
 
 ## Risks to watch
 
-- current planning-mode parity is asserted through exact output equality, so any future intentional wording drift between the two invocation paths should be reflected deliberately in tests
-- the zsh apply filtering test currently covers one bash and one zsh source; broader multi-source combinations remain outside this slice
-- GitHub Actions runners may emit different `bind -X` formatting than the local shell, so wrapper tests should remain tolerant to equivalent output
+- source detection currently exposes at most one candidate path per shell, so shell-filter coverage cannot yet exercise multiple files for the same shell
+- command-level assertions intentionally depend on current user-visible output fragments; any future wording changes should be updated deliberately in tests
 
 ## Open questions
 
@@ -84,102 +85,86 @@ No answered questions were recorded during this session.
 
 ## Working state
 
-- intent: keep PR `#50` green by carrying the completed README-contract tests and fixing the CI-only bash wrapper assertion mismatch
-- scope: `internal/cli/scan_test.go`, `internal/cli/clean_test.go`, `internal/cli/restore_test.go`, `contrib/wrappers_test.go`, `SESSION.md`, and the final session note
-- constraints: keep the slice limited to tests and session artifacts, preserve conservative behavior assertions, do not change wrapper runtime behavior, and leave the repository buildable at the end
+- intent: add the smallest safe command-level matrix for `clean --apply --shell` without changing production behavior
+- scope: `internal/cli/clean_test.go`, `SESSION.md`, and the final session note
+- constraints: keep the slice test-only unless a defect appears, stay within the current one-source-per-shell detector contract, use synthetic history fixtures only, and leave the repository buildable
 - files read:
   - `AGENTS.md`: session workflow and closeout requirements
-  - `SESSION.md`: prior session state and carry-forward structure
-  - `ROADMAP.md`: roadmap boundaries for scan, clean, and restore
+  - `SESSION.md`: previous session state and stale carry-forward context
+  - `ROADMAP.md`: roadmap boundary confirmation for the slice
   - `SKILLS/testing.md`: verification expectations
-  - `SKILLS/config.md`: config constraints and required tests
-  - `contrib/wrappers_test.go`: existing bash and zsh wrapper assertions
-  - `contrib/histkit.bash`: bash bind helper implementation and key-sequence registration format
-  - `internal/cli/scan.go`: config-loading flow for `scan`
-  - `internal/cli/clean.go`: planning/apply branching, config-loading, and shell filtering for `clean`
-  - `internal/cli/restore.go`: config-loading and restore/listing flow
-  - existing CLI tests under `internal/cli`: current README-aligned test baseline
+  - `SKILLS/backup-restore.md`: backup/audit constraints for apply-path assertions
+  - `internal/cli/clean_test.go`: existing command-level clean coverage
+  - `internal/cli/clean.go`: `--shell` apply flow and output behavior
+  - `internal/history/detect.go`: current detector contract and source filtering limits
+  - `internal/config/config.go`: state/audit path layout
+  - `internal/audit/log.go`: audit append behavior
+  - `internal/audit/model.go`: rendered audit line format and rule ordering
+  - `internal/backup/create.go`: backup file layout
 - files changed:
-  - `contrib/wrappers_test.go`: relaxed bash bind-output assertions to accept equivalent colon-separated `bind -X` output seen on GitHub Actions
-  - `internal/cli/scan_test.go`: added missing-config and invalid-TOML coverage for `scan`
-  - `internal/cli/clean_test.go`: added missing-config, invalid-TOML, planning-mode parity, and zsh apply-filter coverage
-  - `internal/cli/restore_test.go`: added missing-config and invalid-TOML coverage for `restore`
-  - `SESSION.md`: recorded the CI follow-up state
-  - `SESSIONS/054-readme-p1-tests.md`: updated the session note with the CI portability fix
+  - `internal/cli/clean_test.go`: added mixed-source, selected-shell-missing, and selected-shell-no-match command tests plus small local helpers
+  - `SESSION.md`: replaced stale PR-50 carry-forward state with the new session state
+  - `SESSIONS/055-clean-apply-shell-matrix.md`: recorded the completed session
 - commands run:
-  - `sed -n '1,260p' SESSION.md`: reviewed prior session state
-  - `sed -n '1,220p' ROADMAP.md`: reviewed roadmap boundaries
+  - `sed -n '1,240p' AGENTS.md`: reviewed session workflow
+  - `sed -n '1,260p' SESSION.md`: reviewed current session state and found it stale relative to `main`
+  - `sed -n '1,220p' ROADMAP.md`: confirmed roadmap boundaries
   - `sed -n '1,220p' SKILLS/testing.md`: reviewed test expectations
-  - `sed -n '1,220p' SKILLS/config.md`: reviewed config constraints
-  - `git status --short --branch`: confirmed the clean `main` state before branching
-  - `ls -1 SESSIONS | sort | tail -n 8`: identified the next session number
-  - `git checkout -b 054-readme-p1-tests`: created the implementation branch
-  - `sed -n '1,260p' internal/cli/scan_test.go`: reviewed current scan coverage
-  - `sed -n '1,320p' internal/cli/clean_test.go`: reviewed current clean coverage
-  - `sed -n '1,280p' internal/cli/restore_test.go`: reviewed current restore coverage
-  - `sed -n '1,220p' internal/cli/scan.go`: reviewed scan config-loading behavior
-  - `sed -n '1,260p' internal/cli/clean.go`: reviewed clean config-loading, planning-mode, and shell-filter behavior
-  - `sed -n '1,240p' internal/cli/restore.go`: reviewed restore config-loading behavior
-  - `git remote -v`: resolved the GitHub repository owner/name from the local checkout
-  - `gh pr status`: confirmed PR `#50` exists and that its CI checks are failing
-  - `gh auth status`: confirmed GitHub CLI auth and scopes for Actions inspection
-  - `python /home/opsman/.codex/plugins/cache/openai-curated/github/1141b764/skills/gh-fix-ci/scripts/inspect_pr_checks.py --repo . --pr 50`: attempted automated check inspection; failed locally because the helper could not create `~/.cache`
-  - `env XDG_CACHE_HOME=/tmp/codex-gh-cache gh pr checks 50`: confirmed the failing check name
-  - `env XDG_CACHE_HOME=/tmp/codex-gh-cache gh run view 25761451321 --json name,workflowName,conclusion,status,url,event,headBranch,headSha,jobs`: identified the failing GitHub Actions job and step
-  - `env XDG_CACHE_HOME=/tmp/codex-gh-cache gh run view 25761451321 --log`: captured the failing `contrib` test output from CI
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./contrib`: verified the wrapper tests after the assertion fix
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: passed after CLI test additions
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`: passed for full repository verification
+  - `sed -n '1,220p' SKILLS/backup-restore.md`: reviewed apply-path backup/audit constraints
+  - `git status --short --branch`: inspected repository state before branching
+  - `git checkout -b 055-clean-apply-shell-matrix`: created the session branch
+  - `sed -n '1,360p' internal/cli/clean_test.go`: reviewed existing clean tests
+  - `sed -n '1,320p' internal/cli/clean.go`: reviewed clean apply flow
+  - `sed -n '360,520p' internal/cli/clean_test.go`: reviewed the existing zsh-only shell-filter test tail
+  - `sed -n '1,260p' internal/history/detect.go`: confirmed one source per shell detection behavior
+  - `sed -n '1,260p' internal/config/config.go`: reviewed default path layout
+  - `sed -n '1,260p' internal/audit/log.go`: reviewed audit append behavior
+  - `sed -n '1,260p' internal/audit/model.go`: reviewed audit log rendering details
+  - `sed -n '1,260p' internal/backup/create.go`: reviewed backup creation layout
+  - `rg -n "backupMatches|AuditLog|clean apply:" internal/cli/*_test.go`: scanned for existing clean-test assertion patterns
+  - `sed -n '1,260p' internal/sanitize/apply.go`: confirmed rewritten output semantics used by the command path
+  - `gofmt -w internal/cli/clean_test.go`: formatted the updated test file
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: failed once on an incorrect expected zsh audit rule name, then passed after correction
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`: passed
 - tests:
   - added:
-    - `TestExecuteScanRejectsMissingConfigPath`
-    - `TestExecuteScanRejectsInvalidConfigTOML`
-    - `TestExecuteCleanRejectsMissingConfigPath`
-    - `TestExecuteCleanRejectsInvalidConfigTOML`
-    - `TestExecuteCleanDryRunFlagMatchesDefaultPlanningMode`
-    - `TestExecuteCleanApplyShellFlagFiltersToZshOnly`
-    - `TestExecuteRestoreRejectsMissingConfigPath`
-    - `TestExecuteRestoreRejectsInvalidConfigTOML`
+    - `TestCleanApplyShellMixedSources`
+    - `TestCleanApplyShellNoMatchingSources`
+    - `TestCleanApplyShellBackupScope`
   - changed: none
   - run:
-    - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./contrib`
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
   - skipped: none
   - failing: none
 - decisions:
-  - keep all remaining P1 coverage in `internal/cli/*_test.go` because the README contract lives at the command layer
-  - assert `clean` planning-mode parity through exact stdout equality to protect user-visible behavior
-  - verify zsh apply filtering by checking rewritten content, backup scope, and audit scope together
-  - accept both space-separated and colon-separated `bind -X` output in `contrib` tests because both represent the same bash binding registration
+  - keep the shell-filter follow-up matrix within the detector’s current one-bash one-zsh capability instead of inventing unsupported multi-source-per-shell scenarios
+  - verify backup and audit scope through command-path side effects rather than lower-level helpers
+  - use short local helper functions in `clean_test.go` to keep the added command cases readable
 - assumptions:
-  - `NON-BLOCKING`: exact-output parity is the right guard for planning-mode equivalence because the README presents `clean` and `clean --dry-run` as the same mode
+  - `NON-BLOCKING`: the current detector contract of at most one source per shell is intentional enough for this test slice, so coverage should reflect that contract rather than speculate beyond it
 - unresolved questions:
   - none currently recorded
-- next step: wait for PR `#50` checks to complete, then resume human review, merge, and branch cleanup if green
+- next step: stage the session files, commit the branch, push it, and open a PR for human review
 
 ## End-of-session notes
 
 Summary:
 
-- Added the remaining P1 README-contract tests for config-loading failures, planning-mode parity, and zsh apply-shell filtering.
-- Fixed a GitHub Actions portability issue in `contrib` bash binding tests by accepting equivalent `bind -X` output variants.
-- Verified the affected wrapper tests and the full repository test suite after the additions.
+- Added a focused command-level `clean --apply --shell` matrix covering mixed shell presence, selected-shell absence, and selected-shell no-match behavior.
+- Kept the slice test-only and aligned the assertions with the current detector contract of one source path per supported shell.
+- Replaced the stale carry-forward `SESSION.md` state so the next session starts from the actual `main` history.
 
 Tests run:
 
-- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./contrib`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
 
 Known failures:
 
-- No test failures.
-- PR `#50` has the follow-up commit pushed and checks are pending again.
+- No test failures after correcting the zsh audit rule-name expectation.
 
 Next recommended session:
 
-- Wait for PR `#50` checks to return green, then resume the normal human-review, merge, and branch-cleanup closeout flow.
-- Then add broader multi-source `clean --apply` filtering coverage so mixed shell/source combinations are exercised beyond the current one-bash one-zsh case.
-- Add command-level coverage for future config sections only when those sections become real CLI inputs; avoid speculative tests before schema expansion exists.
-- Revisit planning-mode assertions if output formatting is intentionally refactored; keep `clean` and `clean --dry-run` behavior aligned even if exact wording changes.
+- Open and review the PR for this test slice, then merge and clean up the branch after human approval.
+- If more shell-filter coverage is needed later, decide first whether the detector should support multiple files per shell before adding broader matrix cases.
