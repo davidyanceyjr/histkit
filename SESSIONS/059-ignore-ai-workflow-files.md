@@ -56,6 +56,11 @@
 - `git add .gitignore SESSION.md SESSIONS/059-ignore-ai-workflow-files.md && git commit -m "Ignore AI workflow metadata"`: committed the slice
 - `git push -u origin 059-ignore-ai-workflow-files`: pushed the branch to GitHub
 - GitHub PR create via connector: opened draft PR `#55`
+- `git add SESSION.md SESSIONS/059-ignore-ai-workflow-files.md && git commit -m "Update session state for PR review"`: committed the final pre-merge session bookkeeping
+- `git push`: updated PR `#55` with the bookkeeping commit
+- GitHub PR ready-for-review via connector: marked PR `#55` ready
+- GitHub PR merge via connector: squash-merged PR `#55` to `main`
+- `git checkout main && git pull --ff-only origin main && git branch -d 059-ignore-ai-workflow-files && git push origin --delete 059-ignore-ai-workflow-files && git status -sb`: synced `main` and cleaned up local/remote branch state
 
 ## Decisions made
 
@@ -74,8 +79,8 @@
 
 - Reduced: AI assistant metadata is less likely to be committed accidentally.
 - Remaining: future repository-specific agent instructions in `AGENTS.md` will no longer be shared through git unless managed through another channel.
-- Published: commit `9702ad1` is on branch `059-ignore-ai-workflow-files` with draft PR `#55` open against `main`.
+- Published: PR `#55` was squash-merged to `main` as commit `17fb586` and the session branch was deleted locally and remotely.
 
 ## Next slice recommendation
 
-- Review draft PR `#55` and confirm the ignore scope before merge and branch cleanup.
+- Start the next slice from `main`.

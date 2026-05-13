@@ -4,7 +4,7 @@
 
 ID: `059-ignore-ai-workflow-files`
 
-Status: awaiting_human_review
+Status: closed
 
 ## Objective
 
@@ -32,11 +32,11 @@ Implement:
 
 - AI workflow metadata paths are ignored by git
 - `AGENTS.md` is no longer tracked by git
-- the slice is committed as `9702ad1`, pushed, and opened as draft PR `#55`
+- the slice is merged to `main` as `17fb586` and the session branch is cleaned up locally and remotely
 
 ## Current repo state
 
-Branch `059-ignore-ai-workflow-files` contains commit `9702ad1e85e39c00e1914a726c3c76558d115080` and is pushed to `origin`. Draft PR `#55` targets `main`. The local `AGENTS.md` file remains present but is now ignored and untracked.
+PR `#55` was approved and squash-merged into `main` as commit `17fb5860caa25e5f0c4c33f75952303037740e4b`. The session branch `059-ignore-ai-workflow-files` has been deleted locally and remotely. The local `AGENTS.md` file remains present but is ignored and untracked.
 
 ## Decisions already made
 
@@ -116,6 +116,11 @@ Every answered question must be recorded here before it is removed from the acti
   - `git add .gitignore SESSION.md SESSIONS/059-ignore-ai-workflow-files.md && git commit -m "Ignore AI workflow metadata"`: committed the slice
   - `git push -u origin 059-ignore-ai-workflow-files`: pushed the branch to GitHub
   - GitHub PR create via connector: opened draft PR `#55`
+  - `git add SESSION.md SESSIONS/059-ignore-ai-workflow-files.md && git commit -m "Update session state for PR review"`: committed the final pre-merge session bookkeeping
+  - `git push`: updated PR `#55` with the bookkeeping commit
+  - GitHub PR ready-for-review via connector: marked PR `#55` ready
+  - GitHub PR merge via connector: squash-merged PR `#55` to `main`
+  - `git checkout main && git pull --ff-only origin main && git branch -d 059-ignore-ai-workflow-files && git push origin --delete 059-ignore-ai-workflow-files && git status -sb`: synced `main` and cleaned up local/remote branch state
 - tests:
   - added: none
   - changed: none
@@ -131,7 +136,7 @@ Every answered question must be recorded here before it is removed from the acti
   - none currently recorded
 - unresolved questions:
   - none currently recorded
-- next step: wait for human review on draft PR `#55`, then merge and clean up the branch after approval
+- next step: start the next implementation slice from `main`
 
 ## End-of-session notes
 
@@ -140,7 +145,7 @@ Summary:
 - Added ignore coverage for common AI assistant workflow metadata.
 - Removed `AGENTS.md` from git tracking while leaving the local file in place.
 - Left `.github/` CI workflow files tracked.
-- Published commit `9702ad1` on branch `059-ignore-ai-workflow-files` and opened draft PR `#55`.
+- Merged PR `#55` to `main` as `17fb586` and cleaned up the session branch locally and remotely.
 
 Tests run:
 
@@ -152,4 +157,4 @@ Known failures:
 
 Next recommended session:
 
-- Review draft PR `#55`, then merge and clean up the branch if the ignore scope matches repository policy.
+- Start the next slice from `main`.
