@@ -47,7 +47,7 @@ func (s Store) Save(snippets []Snippet) error {
 	if err := ValidateCollection(snippets); err != nil {
 		return fmt.Errorf("save snippet store %q: %w", s.Path, err)
 	}
-	if err := os.MkdirAll(filepath.Dir(s.Path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(s.Path), 0o700); err != nil {
 		return fmt.Errorf("save snippet store %q: %w", s.Path, err)
 	}
 

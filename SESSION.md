@@ -2,46 +2,44 @@
 
 ## Current session
 
-ID: `055-clean-apply-shell-matrix`
+ID: `056-ci-gosec-scan`
 
-Status: awaiting human review
+Status: in progress
 
 ## Objective
 
-Broaden command-level `clean --apply --shell` coverage so shell filtering is verified across the supported source-presence and match/no-match combinations.
+Add a low-noise `gosec` stage to histkit's GitHub Actions workflow using a Go toolchain install.
 
 ## Scope
 
 Implement:
 
-- add command-level tests for mixed bash/zsh source presence with `--apply --shell`
-- verify selected-shell-only rewrite, backup, and audit behavior
-- verify no-op behavior when the selected shell has no detected source
-- verify no-op behavior when the selected shell source exists but has no matching entries
+- install `gosec` in GitHub Actions via `go install`
+- run `gosec` in CI against histkit's own packages
+- keep the scan useful for a solo CLI project by avoiding repo-local cache noise and fixing any small high-signal findings uncovered by the chosen scan profile
 
 ## Out of scope
 
-- production code changes unless the new command tests uncover a defect
-- parser, sanitizer, backup, or audit implementation changes
-- support for multiple history files per shell beyond the current detector contract
+- adding SARIF or external security reporting integrations
+- broad production hardening for every current `G204` or `G304` path/exec finding
+- introducing a workflow matrix or separate security workflow
 
 ## Relevant skills
 
 - `SKILLS/testing.md`
-- `SKILLS/backup-restore.md`
+- `SKILLS/go-cli.md`
 
 ## Acceptance criteria
 
-- mixed bash/zsh presence is covered for `clean --apply --shell`
-- only the selected shell source is rewritten
-- only the selected shell source gets a backup and audit record
-- selecting a shell with no detected source produces a no-op without backups or audit output
-- selecting a shell with a detected source but no matches produces a no-op without backups or audit output
-- `go test ./internal/cli` and `go test ./...` pass
+- CI installs `gosec` through the Go toolchain
+- CI runs a dedicated Go SAST stage
+- the configured scan focuses on histkit packages instead of repo-local cache directories
+- local verification with the same `gosec` flags passes
+- `go test ./...` and `go build ./cmd/histkit` pass
 
 ## Current repo state
 
-Branch `055-clean-apply-shell-matrix` contains command-level test additions in `internal/cli/clean_test.go` only. Draft PR `#51` is open against `main`. The prior README contract slice from PR `#50` is already merged on `main`.
+Branch `056-ci-gosec-scan` contains the workflow update plus two permission-tightening fixes needed to keep the new scan actionable. No PR is open yet.
 
 ## Decisions already made
 
@@ -57,10 +55,12 @@ Branch `055-clean-apply-shell-matrix` contains command-level test additions in `
 - bare `clean` and `clean --dry-run` are the same planning mode and should stay equivalent
 - `--shell` filtering during `clean --apply` must restrict mutation, backup creation, and audit logging to the selected shell source
 - shell-filter follow-up coverage should stay at the command layer because the contract spans detection, rewrite, backup, and audit together
+- CI `gosec` coverage should stay scoped to histkit packages and avoid turning repo-local caches or known path-contract findings into recurring noise
 
 ## Risks to watch
 
-- source detection currently exposes at most one candidate path per shell, so shell-filter coverage cannot yet exercise multiple files for the same shell
+- repo-local cache directories can create meaningless SAST output if the workflow scans `./...` naively
+- the temporary `G204` and `G304` exclusions could hide future regressions if they are left unreviewed for too long
 - command-level assertions intentionally depend on current user-visible output fragments; any future wording changes should be updated deliberately in tests
 
 ## Open questions
@@ -85,87 +85,90 @@ No answered questions were recorded during this session.
 
 ## Working state
 
-- intent: add the smallest safe command-level matrix for `clean --apply --shell` without changing production behavior
-- scope: `internal/cli/clean_test.go`, `SESSION.md`, and the final session note
-- constraints: keep the slice test-only unless a defect appears, stay within the current one-source-per-shell detector contract, use synthetic history fixtures only, and leave the repository buildable
+- intent: add a low-noise `gosec` CI stage without restructuring the workflow
+- scope: `.github/workflows/ci.yml`, any small production fixes required to keep the chosen scan profile actionable, `DECISIONS.md`, `RISKS.md`, `SESSION.md`, and the final session note
+- constraints: install `gosec` via `go install`, keep the scan focused on histkit packages, avoid broad suppressions, leave the repository buildable, and use writable temp Go cache paths for local verification in this shell environment
 - files read:
-  - `AGENTS.md`: session workflow and closeout requirements
-  - `SESSION.md`: previous session state and stale carry-forward context
+  - `SESSION.md`: previous session state and carry-forward structure
   - `ROADMAP.md`: roadmap boundary confirmation for the slice
   - `SKILLS/testing.md`: verification expectations
-  - `SKILLS/backup-restore.md`: backup/audit constraints for apply-path assertions
-  - `internal/cli/clean_test.go`: existing command-level clean coverage
-  - `internal/cli/clean.go`: `--shell` apply flow and output behavior
-  - `internal/history/detect.go`: current detector contract and source filtering limits
-  - `internal/config/config.go`: state/audit path layout
-  - `internal/audit/log.go`: audit append behavior
-  - `internal/audit/model.go`: rendered audit line format and rule ordering
-  - `internal/backup/create.go`: backup file layout
+  - `SKILLS/go-cli.md`: implementation constraints relevant to the CLI repository
+  - `.github/workflows/ci.yml`: existing CI job shape and insertion point for the new stage
+  - `SESSIONS/049-basic-ci-workflow.md`: previous CI workflow conventions
+  - `DECISIONS.md`: current durable project decisions
+  - `RISKS.md`: current risk register
+  - `internal/index/schema.go`: existing SQLite parent-directory permissions
+  - `internal/snippets/store.go`: existing snippet store parent-directory permissions
+  - `internal/picker/fzf.go`: context for the current `G204` finding
+  - `internal/history/detect.go`: context for current path-based local filesystem behavior
 - files changed:
-  - `internal/cli/clean_test.go`: added mixed-source, selected-shell-missing, and selected-shell-no-match command tests plus small local helpers
-  - `SESSION.md`: replaced stale PR-50 carry-forward state with the new session state
-  - `SESSIONS/055-clean-apply-shell-matrix.md`: recorded the completed session
+  - `.github/workflows/ci.yml`: added `gosec` installation and a scoped SAST stage
+  - `internal/index/schema.go`: tightened SQLite parent-directory permissions to `0o700`
+  - `internal/snippets/store.go`: tightened snippet store parent-directory permissions to `0o700`
+  - `DECISIONS.md`: added the CI `gosec` policy decision
+  - `RISKS.md`: added the static-analysis exclusion risk entry
+  - `SESSION.md`: replaced the previous session carry-forward with this session's working state
+  - `SESSIONS/056-ci-gosec-scan.md`: recorded the completed session
 - commands run:
-  - `sed -n '1,240p' AGENTS.md`: reviewed session workflow
-  - `sed -n '1,260p' SESSION.md`: reviewed current session state and found it stale relative to `main`
-  - `sed -n '1,220p' ROADMAP.md`: confirmed roadmap boundaries
-  - `sed -n '1,220p' SKILLS/testing.md`: reviewed test expectations
-  - `sed -n '1,220p' SKILLS/backup-restore.md`: reviewed apply-path backup/audit constraints
   - `git status --short --branch`: inspected repository state before branching
-  - `git checkout -b 055-clean-apply-shell-matrix`: created the session branch
-  - `sed -n '1,360p' internal/cli/clean_test.go`: reviewed existing clean tests
-  - `sed -n '1,320p' internal/cli/clean.go`: reviewed clean apply flow
-  - `sed -n '360,520p' internal/cli/clean_test.go`: reviewed the existing zsh-only shell-filter test tail
-  - `sed -n '1,260p' internal/history/detect.go`: confirmed one source per shell detection behavior
-  - `sed -n '1,260p' internal/config/config.go`: reviewed default path layout
-  - `sed -n '1,260p' internal/audit/log.go`: reviewed audit append behavior
-  - `sed -n '1,260p' internal/audit/model.go`: reviewed audit log rendering details
-  - `sed -n '1,260p' internal/backup/create.go`: reviewed backup creation layout
-  - `rg -n "backupMatches|AuditLog|clean apply:" internal/cli/*_test.go`: scanned for existing clean-test assertion patterns
-  - `sed -n '1,260p' internal/sanitize/apply.go`: confirmed rewritten output semantics used by the command path
-  - `gofmt -w internal/cli/clean_test.go`: formatted the updated test file
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`: failed once on an incorrect expected zsh audit rule name, then passed after correction
+  - `ls -1 SESSIONS | sort | tail -n 12`: identified the next session number
+  - `sed -n '1,240p' .github/workflows/ci.yml`: reviewed the current CI workflow
+  - `sed -n '1,220p' SKILLS/go-cli.md`: reviewed relevant implementation constraints
+  - `sed -n '1,240p' SESSION.md`: reviewed the previous session state
+  - `sed -n '1,220p' ROADMAP.md`: confirmed roadmap boundaries
+  - `git checkout -b 056-ci-gosec-scan`: created the session branch
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache GOPATH=/tmp/histkit-gopath GOBIN=/tmp/histkit-gobin go install github.com/securego/gosec/v2/cmd/gosec@latest`: installed `gosec` locally with writable temp Go paths
+  - `env PATH=/tmp/histkit-gobin:$PATH GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache GOPATH=/tmp/histkit-gopath gosec ./...`: showed that naive `./...` scanning was too noisy because repo-local caches were treated as source
+  - `env PATH=/tmp/histkit-gobin:$PATH GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache GOPATH=/tmp/histkit-gopath gosec -tests=false ./cmd/... ./internal/...`: reduced the scan to histkit packages and surfaced 12 project-local findings
+  - `env PATH=/tmp/histkit-gobin:$PATH GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache GOPATH=/tmp/histkit-gopath gosec -tests=false -exclude=G204,G304 ./cmd/... ./internal/...`: isolated the remaining two `G301` permission findings
+  - `sed -n '1,200p' internal/index/schema.go`: reviewed SQLite parent-directory permissions
+  - `sed -n '1,200p' internal/snippets/store.go`: reviewed snippet store parent-directory permissions
+  - `sed -n '1,220p' internal/picker/fzf.go`: reviewed the current `fzf` subprocess launch flow
+  - `sed -n '1,220p' internal/history/detect.go`: reviewed current history source path handling
+  - `gofmt -w internal/index/schema.go internal/snippets/store.go`: formatted the changed Go files
   - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`: passed
+  - `env PATH=/tmp/histkit-gobin:$PATH GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache GOPATH=/tmp/histkit-gopath /tmp/histkit-gobin/gosec -tests=false -exclude=G204,G304 ./cmd/... ./internal/...`: passed
+  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go build ./cmd/histkit`: passed
+  - `rm -f histkit`: removed the local build artifact after verification
 - tests:
-  - added:
-    - `TestCleanApplyShellMixedSources`
-    - `TestCleanApplyShellNoMatchingSources`
-    - `TestCleanApplyShellBackupScope`
+  - added: none
   - changed: none
   - run:
-    - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
     - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
+    - `env PATH=/tmp/histkit-gobin:$PATH GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache GOPATH=/tmp/histkit-gopath /tmp/histkit-gobin/gosec -tests=false -exclude=G204,G304 ./cmd/... ./internal/...`
+    - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go build ./cmd/histkit`
   - skipped: none
   - failing: none
 - decisions:
-  - keep the shell-filter follow-up matrix within the detector’s current one-bash one-zsh capability instead of inventing unsupported multi-source-per-shell scenarios
-  - verify backup and audit scope through command-path side effects rather than lower-level helpers
-  - use short local helper functions in `clean_test.go` to keep the added command cases readable
+  - keep the CI change in the existing single Ubuntu workflow
+  - scope `gosec` to `./cmd/...` and `./internal/...` so repo-local cache directories do not become CI noise
+  - disable test scanning for this stage because the deliverable is a production-focused SAST check
+  - exclude `G204` and `G304` for now and document that policy explicitly rather than leaving unexplained CI failures
+  - fix the two `G301` permission findings in code instead of suppressing them
 - assumptions:
-  - `NON-BLOCKING`: the current detector contract of at most one source per shell is intentional enough for this test slice, so coverage should reflect that contract rather than speculate beyond it
+  - `NON-BLOCKING`: excluding `G204` and `G304` is safe for this slice because the findings arise from known local `fzf` execution and user-local path access patterns that already sit inside histkit's current CLI contract
 - unresolved questions:
   - none currently recorded
-- next step: wait for human review on draft PR `#51`, then merge and clean up the branch after approval
+- next step: push branch `056-ci-gosec-scan`, open a PR, and get human review on the new CI scan policy
 
 ## End-of-session notes
 
 Summary:
 
-- Added a focused command-level `clean --apply --shell` matrix covering mixed shell presence, selected-shell absence, and selected-shell no-match behavior.
-- Kept the slice test-only and aligned the assertions with the current detector contract of one source path per supported shell.
-- Replaced the stale carry-forward `SESSION.md` state so the next session starts from the actual `main` history.
-- Published the branch and opened draft PR `#51` for review.
+- Added a `gosec` stage to CI using a Go toolchain install and a scan profile scoped to histkit packages.
+- Tightened SQLite and snippet store parent-directory permissions so the scan can stay useful without suppressing those findings.
+- Recorded the temporary `G204` and `G304` policy and its residual risk explicitly.
 
 Tests run:
 
-- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
+- `env PATH=/tmp/histkit-gobin:$PATH GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache GOPATH=/tmp/histkit-gopath /tmp/histkit-gobin/gosec -tests=false -exclude=G204,G304 ./cmd/... ./internal/...`
+- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go build ./cmd/histkit`
 
 Known failures:
 
-- No test failures after correcting the zsh audit rule-name expectation.
+- None after switching local Go cache paths to writable temp directories.
 
 Next recommended session:
 
-- Review draft PR `#51`, then merge and clean up the branch after human approval.
-- If more shell-filter coverage is needed later, decide first whether the detector should support multiple files per shell before adding broader matrix cases.
+- Add `govulncheck` to the workflow so dependency vulnerability reachability is covered alongside `gosec`.

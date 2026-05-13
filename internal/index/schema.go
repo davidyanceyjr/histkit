@@ -16,7 +16,7 @@ func Open(path string) (*sql.DB, error) {
 		return nil, fmt.Errorf("open sqlite database: path is required")
 	}
 
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return nil, fmt.Errorf("open sqlite database %q: %w", path, err)
 	}
 
