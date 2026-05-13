@@ -35,3 +35,7 @@ The implementation agent should read only the skill files listed in `SESSION.md`
 ## 009: Delete actions remove matching history lines during apply
 
 For `histkit clean --apply`, rules whose action is `delete` remove matching history lines from the rewritten history file. This behavior is guarded by per-run backups, atomic rewrite, and audit logging.
+
+## 010: gosec scans only histkit packages and excludes current path and exec noise
+
+CI runs `gosec` against `./cmd/...` and `./internal/...` with tests disabled. The workflow currently excludes `G204` and `G304` because histkit intentionally shells out to a resolved local `fzf` binary and reads or writes user-local filesystem paths by design. Those findings should be revisited with code-level hardening rather than left as unreviewed CI noise.

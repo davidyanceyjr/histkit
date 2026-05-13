@@ -76,3 +76,13 @@ Dry-run, audit, logs, and previews can accidentally re-expose secrets.
 - Store raw sensitive values only when absolutely required.
 - Keep permissions restrictive.
 - Avoid logging full secret-bearing commands unless needed for recoverability.
+
+## Static-analysis blind spots
+
+Current CI excludes `gosec` rules `G204` and `G304` to avoid recurring noise from intentional local process execution and path-based file access patterns.
+
+### Mitigation
+
+- Keep the exclusions narrow and documented.
+- Revisit the excluded findings when path-rooting or stronger path validation is added.
+- Prefer code-level hardening or targeted `#nosec` justifications over broad scanner suppression if the affected code grows.
