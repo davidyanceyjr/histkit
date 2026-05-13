@@ -18,31 +18,8 @@ coverage.txt
 *.db-shm
 *.db-wal
 
-# histkit local/generated
+# Local generated/cache data
 .local/
 .cache/
 tmp/
 *.note
-DECISIONS.md
-RISKS.md
-ROADMAP.md
-SESSION.md
-SESSION_PROMPT.md
-SESSIONS/
-SKILLS/
-SKILLS.disabled/
-docs/HUMAN_GATES.md
-docs/IMPLEMENTATION_OPERATING_MODEL.md
-docs/OPEN_QUESTIONS.md
-
-# AI workflow metadata
-AGENTS.md
-CLAUDE.md
-GEMINI.md
-copilot-instructions.md
-.aider*
-.claude/
-.codex/
-.copilot/
-.cursor/
-.windsurf/
