@@ -23,6 +23,17 @@ coverage.txt
 .cache/
 tmp/
 *.note
+DECISIONS.md
+RISKS.md
+ROADMAP.md
+SESSION.md
+SESSION_PROMPT.md
+SESSIONS/
+SKILLS/
+SKILLS.disabled/
+docs/HUMAN_GATES.md
+docs/IMPLEMENTATION_OPERATING_MODEL.md
+docs/OPEN_QUESTIONS.md
 
 # AI workflow metadata
 AGENTS.md
