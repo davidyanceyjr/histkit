@@ -5,6 +5,7 @@
 - Added command-level `clean --apply --shell` tests for mixed bash/zsh source presence, selected-shell absence, and selected-shell no-match behavior.
 - Verified that rewrite, backup, and audit side effects stay scoped to the selected shell only.
 - Refreshed `SESSION.md` because the previous carry-forward state still described the already-merged PR `#50` follow-up.
+- Pushed branch `055-clean-apply-shell-matrix` and opened draft PR `#51`.
 
 ## Objective completed or not completed
 
@@ -42,6 +43,10 @@
 
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./internal/cli`
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
+- `git add SESSION.md internal/cli/clean_test.go SESSIONS/055-clean-apply-shell-matrix.md && git commit -m "Add clean apply shell matrix tests"`
+- `git push -u origin 055-clean-apply-shell-matrix`
+- `gh pr create --base main --head 055-clean-apply-shell-matrix --title "Add clean apply shell matrix tests" ...`: failed with a GitHub GraphQL no-commits/head-ref error despite the pushed branch
+- GitHub connector `_create_pull_request`: opened draft PR `#51`
 
 ## Known failures
 
@@ -91,6 +96,6 @@
 
 ## Next slice recommendation
 
-- Push this branch and open a PR for human review.
+- Review draft PR `#51`.
 - After approval, merge and clean up the branch.
 - If future work needs broader shell-source matrices, decide whether `history.DetectSources` should support multiple paths per shell before expanding tests.

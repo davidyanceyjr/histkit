@@ -4,7 +4,7 @@
 
 ID: `055-clean-apply-shell-matrix`
 
-Status: ready for PR
+Status: awaiting human review
 
 ## Objective
 
@@ -41,7 +41,7 @@ Implement:
 
 ## Current repo state
 
-Branch `055-clean-apply-shell-matrix` contains command-level test additions in `internal/cli/clean_test.go` only. The prior README contract slice from PR `#50` is already merged on `main`.
+Branch `055-clean-apply-shell-matrix` contains command-level test additions in `internal/cli/clean_test.go` only. Draft PR `#51` is open against `main`. The prior README contract slice from PR `#50` is already merged on `main`.
 
 ## Decisions already made
 
@@ -145,7 +145,7 @@ No answered questions were recorded during this session.
   - `NON-BLOCKING`: the current detector contract of at most one source per shell is intentional enough for this test slice, so coverage should reflect that contract rather than speculate beyond it
 - unresolved questions:
   - none currently recorded
-- next step: stage the session files, commit the branch, push it, and open a PR for human review
+- next step: wait for human review on draft PR `#51`, then merge and clean up the branch after approval
 
 ## End-of-session notes
 
@@ -154,6 +154,7 @@ Summary:
 - Added a focused command-level `clean --apply --shell` matrix covering mixed shell presence, selected-shell absence, and selected-shell no-match behavior.
 - Kept the slice test-only and aligned the assertions with the current detector contract of one source path per supported shell.
 - Replaced the stale carry-forward `SESSION.md` state so the next session starts from the actual `main` history.
+- Published the branch and opened draft PR `#51` for review.
 
 Tests run:
 
@@ -166,5 +167,5 @@ Known failures:
 
 Next recommended session:
 
-- Open and review the PR for this test slice, then merge and clean up the branch after human approval.
+- Review draft PR `#51`, then merge and clean up the branch after human approval.
 - If more shell-filter coverage is needed later, decide first whether the detector should support multiple files per shell before adding broader matrix cases.
