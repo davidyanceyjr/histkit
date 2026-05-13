@@ -23,3 +23,15 @@ coverage.txt
 .cache/
 tmp/
 *.note
+
+# AI workflow metadata
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+copilot-instructions.md
+.aider*
+.claude/
+.codex/
+.copilot/
+.cursor/
+.windsurf/
