@@ -2,43 +2,41 @@
 
 ## Current session
 
-ID: `058-ci-binary-smoke-checks`
+ID: `059-ignore-ai-workflow-files`
 
-Status: closed
+Status: awaiting_human_review
 
 ## Objective
 
-Add basic executable smoke checks to histkit's GitHub Actions workflow after building the CLI binary.
+Ignore AI workflow files and directories from git and stop tracking the currently committed AI workflow metadata file.
 
 ## Scope
 
 Implement:
 
-- build the CLI binary as a named artifact in CI
-- run `./histkit --help` in CI
-- run `./histkit doctor --help` in CI
+- add `.gitignore` rules for common AI assistant workflow files and directories
+- remove `AGENTS.md` from the git index while keeping the local file intact
+- record and publish the slice through the normal session workflow
 
 ## Out of scope
 
-- adding SARIF or other external security reporting integrations
-- any production code changes unless the smoke check uncovers a defect
-- introducing a workflow matrix or separate security workflow
+- changing CI or other non-AI GitHub workflow files
+- deleting any local AI workflow files from the working tree
+- broad repository housekeeping outside the ignore scope
 
 ## Relevant skills
 
-- `SKILLS/testing.md`
-- `SKILLS/go-cli.md`
+- `github:yeet`
 
 ## Acceptance criteria
 
-- CI builds a named CLI binary artifact
-- CI runs `./histkit --help` successfully
-- CI runs `./histkit doctor --help` successfully
-- `go test ./...` and `go build ./cmd/histkit` pass
+- AI workflow metadata paths are ignored by git
+- `AGENTS.md` is no longer tracked by git
+- the slice is committed as `9702ad1`, pushed, and opened as draft PR `#55`
 
 ## Current repo state
 
-PR `#54` was approved and squash-merged into `main` as commit `b72ca584ffece314f81e1f19c01d20cbafd18030`. The session branch `058-ci-binary-smoke-checks` has been deleted locally and remotely.
+Branch `059-ignore-ai-workflow-files` contains commit `9702ad1e85e39c00e1914a726c3c76558d115080` and is pushed to `origin`. Draft PR `#55` targets `main`. The local `AGENTS.md` file remains present but is now ignored and untracked.
 
 ## Decisions already made
 
@@ -57,11 +55,12 @@ PR `#54` was approved and squash-merged into `main` as commit `b72ca584ffece314f
 - CI `gosec` coverage should stay scoped to histkit packages and avoid turning repo-local caches or known path-contract findings into recurring noise
 - dependency vulnerability checks should run in CI with `govulncheck` against the full module graph
 - CI should smoke-test the built executable rather than just compile it
+- AI workflow metadata should be ignored without treating `.github/` CI files as AI-only files
 
 ## Risks to watch
 
-- smoke tests should stay limited to help output so they do not require mutable history fixtures or a real shell session
-- command-level assertions intentionally depend on current user-visible output fragments; any future wording changes should be updated deliberately in tests
+- `AGENTS.md` will no longer be versioned, so future agent-specific repository guidance must live outside tracked git content or be reintroduced intentionally later
+- broad ignore patterns should stay limited to known assistant metadata so they do not hide ordinary project files
 
 ## Open questions
 
@@ -81,62 +80,71 @@ Every answered question must be recorded here before it is removed from the acti
 
 ### Answered this session
 
-No answered questions were recorded during this session.
+- `answered`: whether `.github/` should be treated as an AI workflow directory for this slice. Answer: no; keep `.github/` tracked because the repo uses it for CI, not assistant metadata. Source: repository inspection plus the user's stated objective.
 
 ## Working state
 
-- intent: add binary smoke checks to the existing CI workflow without restructuring it
-- scope: `.github/workflows/ci.yml`, `SESSION.md`, and the final session note
-- constraints: keep the smoke stage to help output only, leave the repository buildable, and use writable temp Go cache paths for local verification in this shell environment
+- intent: ignore AI workflow metadata in git without affecting normal repository workflows
+- scope: `.gitignore`, tracked state for `AGENTS.md`, `SESSION.md`, and the final session note
+- constraints: keep the change non-destructive to local files, avoid ignoring `.github/` CI assets, leave the repository in a publishable state, and document the session fully
 - files read:
   - `SESSION.md`: previous closed session state and carry-forward structure
   - `ROADMAP.md`: roadmap boundary confirmation for the slice
-  - `SKILLS/testing.md`: verification expectations
-  - `SKILLS/go-cli.md`: implementation constraints relevant to the CLI repository
-  - `.github/workflows/ci.yml`: existing CI job shape and insertion point for the smoke stage
+  - `AGENTS.md`: required implementation workflow and session record expectations
+  - `.gitignore`: existing ignore rules and insertion point for AI metadata patterns
+  - `/home/opsman/.codex/plugins/cache/openai-curated/github/1141b764/skills/yeet/SKILL.md`: publish workflow expectations for commit, push, and draft PR creation
 - files changed:
-  - `.github/workflows/ci.yml`: updated build output and added binary help smoke checks
+  - `.gitignore`: added ignore rules for common AI workflow metadata files and directories
+  - `AGENTS.md`: removed from the git index while preserving the local file
   - `SESSION.md`: replaced the previous closed session carry-forward with this session's working state
-  - `SESSIONS/058-ci-binary-smoke-checks.md`: records this session
+  - `SESSIONS/059-ignore-ai-workflow-files.md`: records this session
 - commands run:
   - `git status --short --branch`: inspected repository state on `main`
-  - `sed -n '1,240p' SESSION.md`: reviewed the previous closed session state
-  - `sed -n '1,220p' ROADMAP.md`: confirmed roadmap boundaries
-  - `sed -n '1,220p' SKILLS/testing.md`: reviewed verification expectations
-  - `sed -n '1,220p' .github/workflows/ci.yml`: reviewed the current CI workflow
-  - `ls -1 SESSIONS | sort | tail -n 4`: identified the next session number
-  - `git checkout -b 058-ci-binary-smoke-checks`: created the session branch
-  - `sed -n '1,220p' SKILLS/go-cli.md`: reviewed relevant implementation constraints
-  - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`: passed
-  - `mkdir -p /tmp/histkit-smoke && env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go build -o /tmp/histkit-smoke/histkit ./cmd/histkit && /tmp/histkit-smoke/histkit --help && /tmp/histkit-smoke/histkit doctor --help`: passed
+  - `sed -n '1,220p' SESSION.md`: reviewed the previous closed session state
+  - `sed -n '1,240p' ROADMAP.md`: confirmed roadmap boundaries
+  - `sed -n '1,220p' .gitignore`: reviewed current ignore rules
+  - `sed -n '1,240p' AGENTS.md`: reviewed required session workflow
+  - `ls -1 SESSIONS | sort | tail -n 8`: identified the next session number
+  - `git ls-files | rg '(^|/)(\\.github|\\.claude|\\.cursor|\\.copilot|\\.aider|\\.codex|agents|AGENTS\\.md|CLAUDE\\.md|GEMINI\\.md|copilot-instructions\\.md|promptfoo|\\.windsurf)($|/)'`: checked currently tracked workflow-style files
+  - `find .. -maxdepth 3 \\( -name '.github' -o -name '.claude' -o -name '.cursor' -o -name '.copilot' -o -name '.aider*' -o -name '.codex' -o -name 'CLAUDE.md' -o -name 'GEMINI.md' -o -name 'copilot-instructions.md' -o -name 'AGENTS.md' \\) | sed -n '1,120p'`: checked nearby filesystem matches
+  - `git checkout -b 059-ignore-ai-workflow-files`: created the session branch
+  - `sed -n '1,240p' /home/opsman/.codex/plugins/cache/openai-curated/github/1141b764/skills/yeet/SKILL.md`: reviewed publish workflow guidance
+  - `git remote -v`: confirmed GitHub remote details
+  - `git rm --cached -- AGENTS.md`: removed `AGENTS.md` from git tracking while keeping the local file
+  - `git check-ignore -v AGENTS.md .claude/settings.json .codex/config.toml CLAUDE.md`: verified the new ignore patterns
+  - `git status --short`: confirmed the intended staged deletion and ignore-rule modification
+  - `git add .gitignore SESSION.md SESSIONS/059-ignore-ai-workflow-files.md && git commit -m "Ignore AI workflow metadata"`: committed the slice
+  - `git push -u origin 059-ignore-ai-workflow-files`: pushed the branch to GitHub
+  - GitHub PR create via connector: opened draft PR `#55`
 - tests:
   - added: none
   - changed: none
   - run:
-    - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
-    - `mkdir -p /tmp/histkit-smoke && env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go build -o /tmp/histkit-smoke/histkit ./cmd/histkit && /tmp/histkit-smoke/histkit --help && /tmp/histkit-smoke/histkit doctor --help`
-  - skipped: none
+    - `git check-ignore -v AGENTS.md .claude/settings.json .codex/config.toml CLAUDE.md`
+  - skipped:
+    - `go test ./...` because the slice only changes git ignore and tracked metadata, not Go code or CI logic
   - failing: none
 - decisions:
-  - keep the smoke-check change in the existing single Ubuntu workflow
-  - build a named binary and smoke-test the same artifact in CI
+  - treat AI workflow files as assistant-specific metadata rather than all GitHub workflow content
+  - stop tracking `AGENTS.md` by removing it from the index instead of deleting the local file
 - assumptions:
   - none currently recorded
 - unresolved questions:
   - none currently recorded
-- next step: start the next CI slice from `main`
+- next step: wait for human review on draft PR `#55`, then merge and clean up the branch after approval
 
 ## End-of-session notes
 
 Summary:
 
-- Adding built-binary smoke checks to CI after the CLI build step.
-- Smoke testing `./histkit --help` and `./histkit doctor --help` against a named artifact to validate the executable rather than just compilation.
+- Added ignore coverage for common AI assistant workflow metadata.
+- Removed `AGENTS.md` from git tracking while leaving the local file in place.
+- Left `.github/` CI workflow files tracked.
+- Published commit `9702ad1` on branch `059-ignore-ai-workflow-files` and opened draft PR `#55`.
 
 Tests run:
 
-- `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
-- `mkdir -p /tmp/histkit-smoke && env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go build -o /tmp/histkit-smoke/histkit ./cmd/histkit && /tmp/histkit-smoke/histkit --help && /tmp/histkit-smoke/histkit doctor --help`
+- `git check-ignore -v AGENTS.md .claude/settings.json .codex/config.toml CLAUDE.md`
 
 Known failures:
 
@@ -144,4 +152,4 @@ Known failures:
 
 Next recommended session:
 
-- Add a small CI step or job if the project later wants to split smoke checks from the main build.
+- Review draft PR `#55`, then merge and clean up the branch if the ignore scope matches repository policy.
