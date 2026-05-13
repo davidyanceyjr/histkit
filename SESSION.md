@@ -4,7 +4,7 @@
 
 ID: `057-ci-govulncheck`
 
-Status: awaiting human review
+Status: closed
 
 ## Objective
 
@@ -38,7 +38,7 @@ Implement:
 
 ## Current repo state
 
-Branch `057-ci-govulncheck` contains the workflow update for `govulncheck` only. Draft PR `#53` is open against `main`.
+PR `#53` was approved and squash-merged into `main` as commit `0769e80973422645413ac8cd5492d4372b4770c8`. The session branch `057-ci-govulncheck` has been deleted locally and remotely.
 
 ## Decisions already made
 
@@ -121,7 +121,7 @@ No answered questions were recorded during this session.
   - none currently recorded
 - unresolved questions:
   - none currently recorded
-- next step: wait for human review on draft PR `#53`, then merge and clean up the branch after approval
+- next step: start the executable smoke-check follow-up slice from `main`
 
 ## End-of-session notes
 
@@ -140,5 +140,4 @@ Known failures:
 
 Next recommended session:
 
-- Review draft PR `#53`, then merge and clean up the branch after human approval.
-- After that, consider adding basic executable smoke checks so CI validates the built binary as well as static analysis stages.
+- Add basic executable smoke checks so CI validates the built binary as well as static analysis stages.
