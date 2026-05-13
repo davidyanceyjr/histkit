@@ -4,6 +4,7 @@
 
 - Added a `govulncheck` stage to the GitHub Actions workflow using a Go toolchain install.
 - Kept the slice workflow-only because the local reachability scan reported no vulnerabilities.
+- Pushed branch `057-ci-govulncheck` and opened draft PR `#53`.
 
 ## Objective completed or not completed
 
@@ -52,6 +53,8 @@
 - `env PATH=/tmp/histkit-gobin:$PATH GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache GOPATH=/tmp/histkit-gopath /tmp/histkit-gobin/govulncheck ./...`: passed
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go build ./cmd/histkit`: passed
 - `rm -f histkit`: removed the local build artifact after verification
+- `git add .github/workflows/ci.yml SESSION.md SESSIONS/057-ci-govulncheck.md && git commit -m "Add govulncheck scan to CI" && git push -u origin 057-ci-govulncheck`: committed and pushed the slice
+- GitHub PR create via connector: opened draft PR `#53`
 
 ## Decisions made
 
@@ -73,4 +76,5 @@
 
 ## Next slice recommendation
 
-- Add basic executable smoke checks so CI validates the built binary as well as static analysis stages.
+- Review draft PR `#53`, then merge and clean up the branch after human approval.
+- After that, add basic executable smoke checks so CI validates the built binary as well as static analysis stages.

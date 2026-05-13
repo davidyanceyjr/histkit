@@ -4,7 +4,7 @@
 
 ID: `057-ci-govulncheck`
 
-Status: in progress
+Status: awaiting human review
 
 ## Objective
 
@@ -38,7 +38,7 @@ Implement:
 
 ## Current repo state
 
-Branch `057-ci-govulncheck` contains the workflow update for `govulncheck` only. No PR is open yet.
+Branch `057-ci-govulncheck` contains the workflow update for `govulncheck` only. Draft PR `#53` is open against `main`.
 
 ## Decisions already made
 
@@ -121,7 +121,7 @@ No answered questions were recorded during this session.
   - none currently recorded
 - unresolved questions:
   - none currently recorded
-- next step: verify the updated workflow locally with `go test ./...`, `govulncheck ./...`, and `go build ./cmd/histkit`, then open a PR
+- next step: wait for human review on draft PR `#53`, then merge and clean up the branch after approval
 
 ## End-of-session notes
 
@@ -140,4 +140,5 @@ Known failures:
 
 Next recommended session:
 
-- After this slice merges, consider adding basic executable smoke checks so CI validates the built binary as well as static analysis stages.
+- Review draft PR `#53`, then merge and clean up the branch after human approval.
+- After that, consider adding basic executable smoke checks so CI validates the built binary as well as static analysis stages.
