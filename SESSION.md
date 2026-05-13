@@ -4,7 +4,7 @@
 
 ID: `058-ci-binary-smoke-checks`
 
-Status: awaiting human review
+Status: closed
 
 ## Objective
 
@@ -38,7 +38,7 @@ Implement:
 
 ## Current repo state
 
-Branch `058-ci-binary-smoke-checks` contains the workflow update for binary smoke checks only. Draft PR `#54` is open against `main`.
+PR `#54` was approved and squash-merged into `main` as commit `b72ca584ffece314f81e1f19c01d20cbafd18030`. The session branch `058-ci-binary-smoke-checks` has been deleted locally and remotely.
 
 ## Decisions already made
 
@@ -124,7 +124,7 @@ No answered questions were recorded during this session.
   - none currently recorded
 - unresolved questions:
   - none currently recorded
-- next step: wait for human review on draft PR `#54`, then merge and clean up the branch after approval
+- next step: start the next CI slice from `main`
 
 ## End-of-session notes
 
@@ -144,5 +144,4 @@ Known failures:
 
 Next recommended session:
 
-- Review draft PR `#54`, then merge and clean up the branch after human approval.
 - Add a small CI step or job if the project later wants to split smoke checks from the main build.
