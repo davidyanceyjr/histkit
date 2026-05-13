@@ -2,6 +2,7 @@ package index
 
 import (
 	"database/sql"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -104,6 +105,34 @@ func TestRunsInsertAndReopenDatabase(t *testing.T) {
 	}
 	if count != 1 {
 		t.Fatalf("run count = %d, want 1", count)
+	}
+}
+
+func TestOpenCreatesRelativeDatabasePath(t *testing.T) {
+	tempDir := t.TempDir()
+	path := filepath.Join("nested", "histkit.db")
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("Chdir(tempDir) returned error: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(wd); err != nil {
+			t.Fatalf("restore working directory: %v", err)
+		}
+	})
+
+	db, err := Open(path)
+	if err != nil {
+		t.Fatalf("Open returned error: %v", err)
+	}
+	defer db.Close()
+
+	if _, err := os.Stat(filepath.Join(tempDir, path)); err != nil {
+		t.Fatalf("Stat(relative database path) returned error: %v", err)
 	}
 }
 

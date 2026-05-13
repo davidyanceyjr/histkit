@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/davidyanceyjr/histkit/internal/fsroot"
 )
 
 func Append(path string, record Record) error {
@@ -15,21 +17,30 @@ func Append(path string, record Record) error {
 		return fmt.Errorf("append audit log: %w", err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+	absolutePath, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("append audit log: resolve absolute path %q: %w", path, err)
+	}
+	root, err := fsroot.New(filepath.Dir(absolutePath))
+	if err != nil {
+		return fmt.Errorf("append audit log: %w", err)
+	}
+
+	if err := os.MkdirAll(root.Path(), 0o700); err != nil {
 		return fmt.Errorf("append audit log: create parent directory: %w", err)
 	}
 
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	file, err := root.OpenFile(filepath.Base(absolutePath), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
-		return fmt.Errorf("append audit log: open file %q: %w", path, err)
+		return fmt.Errorf("append audit log: open file %q: %w", absolutePath, err)
 	}
 	defer file.Close()
 
 	if _, err := file.WriteString(RenderLine(record) + "\n"); err != nil {
-		return fmt.Errorf("append audit log: write file %q: %w", path, err)
+		return fmt.Errorf("append audit log: write file %q: %w", absolutePath, err)
 	}
 	if err := file.Sync(); err != nil {
-		return fmt.Errorf("append audit log: sync file %q: %w", path, err)
+		return fmt.Errorf("append audit log: sync file %q: %w", absolutePath, err)
 	}
 
 	return nil

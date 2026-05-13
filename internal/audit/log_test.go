@@ -136,3 +136,42 @@ func TestAppendRejectsEmptyPath(t *testing.T) {
 		t.Fatal("Append returned nil error for empty path")
 	}
 }
+
+func TestAppendCreatesRelativeLogPath(t *testing.T) {
+	tempDir := t.TempDir()
+	logPath := filepath.Join("state", "audit.log")
+	record := Record{
+		RunID:       "run_001",
+		StartedAt:   time.Date(2026, 5, 1, 13, 0, 0, 0, time.UTC),
+		CompletedAt: time.Date(2026, 5, 1, 13, 0, 1, 0, time.UTC),
+		Shell:       "bash",
+		RuleNames:   []string{"secret-token"},
+		CountsByAction: map[sanitize.ActionType]int{
+			sanitize.ActionRedact: 1,
+		},
+		CountsByConfidence: map[sanitize.Confidence]int{
+			sanitize.ConfidenceHigh: 1,
+		},
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("Chdir(tempDir) returned error: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(wd); err != nil {
+			t.Fatalf("restore working directory: %v", err)
+		}
+	})
+
+	if err := Append(logPath, record); err != nil {
+		t.Fatalf("Append returned error: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(tempDir, logPath)); err != nil {
+		t.Fatalf("Stat(relative log path) returned error: %v", err)
+	}
+}
