@@ -53,6 +53,9 @@
 - `git rm --cached -- AGENTS.md`: removed `AGENTS.md` from git tracking while keeping the local file
 - `git check-ignore -v AGENTS.md .claude/settings.json .codex/config.toml CLAUDE.md`: verified the new ignore patterns
 - `git status --short`: confirmed the intended staged deletion and ignore-rule modification
+- `git add .gitignore SESSION.md SESSIONS/059-ignore-ai-workflow-files.md && git commit -m "Ignore AI workflow metadata"`: committed the slice
+- `git push -u origin 059-ignore-ai-workflow-files`: pushed the branch to GitHub
+- GitHub PR create via connector: opened draft PR `#55`
 
 ## Decisions made
 
@@ -71,7 +74,8 @@
 
 - Reduced: AI assistant metadata is less likely to be committed accidentally.
 - Remaining: future repository-specific agent instructions in `AGENTS.md` will no longer be shared through git unless managed through another channel.
+- Published: commit `9702ad1` is on branch `059-ignore-ai-workflow-files` with draft PR `#55` open against `main`.
 
 ## Next slice recommendation
 
-- Review the draft PR and confirm the ignore scope before merge.
+- Review draft PR `#55` and confirm the ignore scope before merge and branch cleanup.

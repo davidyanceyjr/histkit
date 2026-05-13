@@ -4,7 +4,7 @@
 
 ID: `059-ignore-ai-workflow-files`
 
-Status: in_review
+Status: awaiting_human_review
 
 ## Objective
 
@@ -32,11 +32,11 @@ Implement:
 
 - AI workflow metadata paths are ignored by git
 - `AGENTS.md` is no longer tracked by git
-- the slice is committed, pushed, and opened as a draft PR
+- the slice is committed as `9702ad1`, pushed, and opened as draft PR `#55`
 
 ## Current repo state
 
-Branch `059-ignore-ai-workflow-files` contains the ignore-rule update and removes `AGENTS.md` from the git index. The local `AGENTS.md` file remains present but is now ignored.
+Branch `059-ignore-ai-workflow-files` contains commit `9702ad1e85e39c00e1914a726c3c76558d115080` and is pushed to `origin`. Draft PR `#55` targets `main`. The local `AGENTS.md` file remains present but is now ignored and untracked.
 
 ## Decisions already made
 
@@ -113,6 +113,9 @@ Every answered question must be recorded here before it is removed from the acti
   - `git rm --cached -- AGENTS.md`: removed `AGENTS.md` from git tracking while keeping the local file
   - `git check-ignore -v AGENTS.md .claude/settings.json .codex/config.toml CLAUDE.md`: verified the new ignore patterns
   - `git status --short`: confirmed the intended staged deletion and ignore-rule modification
+  - `git add .gitignore SESSION.md SESSIONS/059-ignore-ai-workflow-files.md && git commit -m "Ignore AI workflow metadata"`: committed the slice
+  - `git push -u origin 059-ignore-ai-workflow-files`: pushed the branch to GitHub
+  - GitHub PR create via connector: opened draft PR `#55`
 - tests:
   - added: none
   - changed: none
@@ -128,7 +131,7 @@ Every answered question must be recorded here before it is removed from the acti
   - none currently recorded
 - unresolved questions:
   - none currently recorded
-- next step: commit the ignore-only slice, push the branch, and open a draft PR for human review
+- next step: wait for human review on draft PR `#55`, then merge and clean up the branch after approval
 
 ## End-of-session notes
 
@@ -137,6 +140,7 @@ Summary:
 - Added ignore coverage for common AI assistant workflow metadata.
 - Removed `AGENTS.md` from git tracking while leaving the local file in place.
 - Left `.github/` CI workflow files tracked.
+- Published commit `9702ad1` on branch `059-ignore-ai-workflow-files` and opened draft PR `#55`.
 
 Tests run:
 
@@ -148,4 +152,4 @@ Known failures:
 
 Next recommended session:
 
-- Review and merge the draft PR if the ignore scope matches repository policy.
+- Review draft PR `#55`, then merge and clean up the branch if the ignore scope matches repository policy.
