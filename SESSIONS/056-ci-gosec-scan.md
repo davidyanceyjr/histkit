@@ -5,6 +5,7 @@
 - Added a `gosec` stage to the GitHub Actions workflow using a Go toolchain install.
 - Scoped the scan to histkit's own packages and disabled test scanning so local cache trees and fixture-heavy test code do not drown out actionable findings.
 - Tightened two user-local directory creation sites from `0o755` to `0o700` so the new scan passes without suppressing those permission findings.
+- Pushed branch `056-ci-gosec-scan` and opened draft PR `#52`.
 
 ## Objective completed or not completed
 
@@ -71,6 +72,9 @@
 - `env PATH=/tmp/histkit-gobin:$PATH GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache GOPATH=/tmp/histkit-gopath /tmp/histkit-gobin/gosec -tests=false -exclude=G204,G304 ./cmd/... ./internal/...`: passed
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go build ./cmd/histkit`: passed
 - `rm -f histkit`: removed the local build artifact after verification
+- `git add .github/workflows/ci.yml DECISIONS.md RISKS.md SESSION.md SESSIONS/056-ci-gosec-scan.md internal/index/schema.go internal/snippets/store.go && git commit -m "Add gosec scan to CI"`: committed the slice
+- `git push -u origin 056-ci-gosec-scan`: pushed the branch to GitHub
+- GitHub PR create via connector: opened draft PR `#52`
 
 ## Decisions made
 
@@ -96,4 +100,5 @@
 
 ## Next slice recommendation
 
-- Add `govulncheck` to the existing workflow so dependency vulnerability reachability is covered alongside the new `gosec` stage.
+- Review draft PR `#52`, then merge and clean up the branch after human approval.
+- After that, add `govulncheck` to the existing workflow so dependency vulnerability reachability is covered alongside the new `gosec` stage.

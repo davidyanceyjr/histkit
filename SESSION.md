@@ -4,7 +4,7 @@
 
 ID: `056-ci-gosec-scan`
 
-Status: in progress
+Status: awaiting human review
 
 ## Objective
 
@@ -39,7 +39,7 @@ Implement:
 
 ## Current repo state
 
-Branch `056-ci-gosec-scan` contains the workflow update plus two permission-tightening fixes needed to keep the new scan actionable. No PR is open yet.
+Branch `056-ci-gosec-scan` contains the workflow update plus two permission-tightening fixes needed to keep the new scan actionable. Draft PR `#52` is open against `main`.
 
 ## Decisions already made
 
@@ -149,7 +149,7 @@ No answered questions were recorded during this session.
   - `NON-BLOCKING`: excluding `G204` and `G304` is safe for this slice because the findings arise from known local `fzf` execution and user-local path access patterns that already sit inside histkit's current CLI contract
 - unresolved questions:
   - none currently recorded
-- next step: push branch `056-ci-gosec-scan`, open a PR, and get human review on the new CI scan policy
+- next step: wait for human review on draft PR `#52`, then merge and clean up the branch after approval
 
 ## End-of-session notes
 
@@ -171,4 +171,5 @@ Known failures:
 
 Next recommended session:
 
-- Add `govulncheck` to the workflow so dependency vulnerability reachability is covered alongside `gosec`.
+- Review draft PR `#52`, then merge and clean up the branch after human approval.
+- After that, add `govulncheck` to the workflow so dependency vulnerability reachability is covered alongside `gosec`.
