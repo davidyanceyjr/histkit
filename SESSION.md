@@ -4,7 +4,7 @@
 
 ID: `056-ci-gosec-scan`
 
-Status: awaiting human review
+Status: closed
 
 ## Objective
 
@@ -39,7 +39,7 @@ Implement:
 
 ## Current repo state
 
-Branch `056-ci-gosec-scan` contains the workflow update plus two permission-tightening fixes needed to keep the new scan actionable. Draft PR `#52` is open against `main`.
+PR `#52` was approved and squash-merged into `main` as commit `86310d17d89a6548405fdb519bd3f4c59580ab33`. The session branch `056-ci-gosec-scan` has been deleted locally and remotely.
 
 ## Decisions already made
 
@@ -149,7 +149,7 @@ No answered questions were recorded during this session.
   - `NON-BLOCKING`: excluding `G204` and `G304` is safe for this slice because the findings arise from known local `fzf` execution and user-local path access patterns that already sit inside histkit's current CLI contract
 - unresolved questions:
   - none currently recorded
-- next step: wait for human review on draft PR `#52`, then merge and clean up the branch after approval
+- next step: start the `govulncheck` follow-up slice from `main`
 
 ## End-of-session notes
 
@@ -171,5 +171,4 @@ Known failures:
 
 Next recommended session:
 
-- Review draft PR `#52`, then merge and clean up the branch after human approval.
-- After that, add `govulncheck` to the workflow so dependency vulnerability reachability is covered alongside `gosec`.
+- Add `govulncheck` to the workflow so dependency vulnerability reachability is covered alongside `gosec`.
