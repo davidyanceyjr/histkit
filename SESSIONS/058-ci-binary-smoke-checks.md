@@ -4,6 +4,7 @@
 
 - Added binary smoke checks to the GitHub Actions workflow after the build step.
 - The workflow now builds a named `./histkit` artifact and runs `./histkit --help` plus `./histkit doctor --help`.
+- Pushed branch `058-ci-binary-smoke-checks` and opened draft PR `#54`.
 
 ## Objective completed or not completed
 
@@ -31,6 +32,9 @@
 
 - `env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go test ./...`
 - `mkdir -p /tmp/histkit-smoke && env GOCACHE=/tmp/histkit-gocache GOMODCACHE=/tmp/histkit-gomodcache go build -o /tmp/histkit-smoke/histkit ./cmd/histkit && /tmp/histkit-smoke/histkit --help && /tmp/histkit-smoke/histkit doctor --help`
+- `git add .github/workflows/ci.yml SESSION.md SESSIONS/058-ci-binary-smoke-checks.md && git commit -m "Add binary smoke checks to CI"`: committed the slice
+- `git push -u origin 058-ci-binary-smoke-checks`: pushed the branch to GitHub
+- GitHub PR create via connector: opened draft PR `#54`
 
 ## Known failures
 
@@ -69,4 +73,5 @@
 
 ## Next slice recommendation
 
+- Review draft PR `#54`, then merge and clean up the branch after human approval.
 - Add a small CI step or job if the project later wants to split smoke checks from the main build.
