@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/davidyanceyjr/histkit/internal/fsroot"
 )
 
 func Create(sourceFile, backupDir string, createdAt time.Time, sequence int) (Record, error) {
@@ -25,25 +27,39 @@ func Create(sourceFile, backupDir string, createdAt time.Time, sequence int) (Re
 		return Record{}, fmt.Errorf("create backup: sequence must be positive")
 	}
 
-	checksum, err := ChecksumFile(sourceFile)
+	sourceRoot, sourceRelativePath, sourceAbsolutePath, err := newSourceFileRoot(sourceFile)
+	if err != nil {
+		return Record{}, fmt.Errorf("create backup: %w", err)
+	}
+	backupRoot, err := newBackupRoot(backupDir)
 	if err != nil {
 		return Record{}, fmt.Errorf("create backup: %w", err)
 	}
 
-	record, err := BuildRecord(sourceFile, backupDir, checksum, createdAt, sequence)
+	checksum, err := checksumFileWithRoot(sourceRoot, sourceRelativePath, sourceFile)
 	if err != nil {
 		return Record{}, fmt.Errorf("create backup: %w", err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(record.BackupPath), 0o700); err != nil {
+	record, err := BuildRecord(sourceFile, backupRoot.Path(), checksum, createdAt, sequence)
+	if err != nil {
+		return Record{}, fmt.Errorf("create backup: %w", err)
+	}
+
+	backupDirPath, err := backupRoot.Resolve(record.ID)
+	if err != nil {
+		return Record{}, fmt.Errorf("create backup: resolve backup directory: %w", err)
+	}
+	if err := os.MkdirAll(backupDirPath, 0o700); err != nil {
 		return Record{}, fmt.Errorf("create backup: create backup directory: %w", err)
 	}
 
-	if err := copyFile(sourceFile, record.BackupPath); err != nil {
+	targetRelativePath := filepath.Join(record.ID, filepath.Base(sourceAbsolutePath))
+	if err := copyFile(sourceRoot, sourceRelativePath, backupRoot, targetRelativePath); err != nil {
 		return Record{}, fmt.Errorf("create backup: %w", err)
 	}
 
-	backupChecksum, err := ChecksumFile(record.BackupPath)
+	backupChecksum, err := checksumFileWithRoot(backupRoot, targetRelativePath, record.BackupPath)
 	if err != nil {
 		_ = os.Remove(record.BackupPath)
 		return Record{}, fmt.Errorf("create backup: %w", err)
@@ -65,50 +81,89 @@ func ChecksumFile(path string) (string, error) {
 		return "", fmt.Errorf("checksum file: path is required")
 	}
 
-	file, err := os.Open(path)
+	root, relativePath, _, err := newSourceFileRoot(path)
 	if err != nil {
-		return "", fmt.Errorf("checksum file %q: %w", path, err)
+		return "", err
+	}
+	return checksumFileWithRoot(root, relativePath, path)
+}
+
+func checksumFileWithRoot(root fsroot.Root, path, displayPath string) (string, error) {
+	file, err := root.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("checksum file %q: %w", displayPath, err)
 	}
 	defer file.Close()
 
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
-		return "", fmt.Errorf("checksum file %q: %w", path, err)
+		return "", fmt.Errorf("checksum file %q: %w", displayPath, err)
 	}
 
 	return "sha256:" + hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func copyFile(sourcePath, targetPath string) error {
-	source, err := os.Open(sourcePath)
+func copyFile(sourceRoot fsroot.Root, sourcePath string, targetRoot fsroot.Root, targetPath string) error {
+	source, err := sourceRoot.Open(sourcePath)
 	if err != nil {
-		return fmt.Errorf("open source file %q: %w", sourcePath, err)
+		resolvedSourcePath, resolveErr := sourceRoot.Resolve(sourcePath)
+		if resolveErr != nil {
+			return fmt.Errorf("open source file: %w", err)
+		}
+		return fmt.Errorf("open source file %q: %w", resolvedSourcePath, err)
 	}
 	defer source.Close()
 
 	info, err := source.Stat()
 	if err != nil {
-		return fmt.Errorf("stat source file %q: %w", sourcePath, err)
+		resolvedSourcePath, resolveErr := sourceRoot.Resolve(sourcePath)
+		if resolveErr != nil {
+			return fmt.Errorf("stat source file: %w", err)
+		}
+		return fmt.Errorf("stat source file %q: %w", resolvedSourcePath, err)
 	}
 	if !info.Mode().IsRegular() {
-		return fmt.Errorf("source file %q is not a regular file", sourcePath)
+		resolvedSourcePath, resolveErr := sourceRoot.Resolve(sourcePath)
+		if resolveErr != nil {
+			return fmt.Errorf("source file is not a regular file")
+		}
+		return fmt.Errorf("source file %q is not a regular file", resolvedSourcePath)
 	}
 
-	target, err := os.OpenFile(targetPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	resolvedTargetPath, err := targetRoot.Resolve(targetPath)
 	if err != nil {
-		return fmt.Errorf("open backup file %q: %w", targetPath, err)
+		return fmt.Errorf("open backup file: %w", err)
+	}
+
+	target, err := targetRoot.OpenFile(targetPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("open backup file %q: %w", resolvedTargetPath, err)
 	}
 
 	if _, err := io.Copy(target, source); err != nil {
 		_ = target.Close()
-		_ = os.Remove(targetPath)
-		return fmt.Errorf("copy backup file %q: %w", targetPath, err)
+		_ = os.Remove(resolvedTargetPath)
+		return fmt.Errorf("copy backup file %q: %w", resolvedTargetPath, err)
 	}
 
 	if err := target.Close(); err != nil {
-		_ = os.Remove(targetPath)
-		return fmt.Errorf("close backup file %q: %w", targetPath, err)
+		_ = os.Remove(resolvedTargetPath)
+		return fmt.Errorf("close backup file %q: %w", resolvedTargetPath, err)
 	}
 
 	return nil
+}
+
+func newSourceFileRoot(path string) (fsroot.Root, string, string, error) {
+	absolutePath, err := filepath.Abs(path)
+	if err != nil {
+		return fsroot.Root{}, "", "", fmt.Errorf("source file %q: resolve absolute path: %w", path, err)
+	}
+
+	root, err := fsroot.New(filepath.Dir(absolutePath))
+	if err != nil {
+		return fsroot.Root{}, "", "", fmt.Errorf("source file %q: %w", path, err)
+	}
+
+	return root, filepath.Base(absolutePath), absolutePath, nil
 }
