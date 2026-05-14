@@ -1,6 +1,7 @@
 package doctor
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -8,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/davidyanceyjr/histkit/internal/config"
+	"github.com/davidyanceyjr/histkit/internal/fsroot"
 	"github.com/davidyanceyjr/histkit/internal/history"
 )
 
@@ -153,9 +155,14 @@ func checkHistorySources(home string) CheckResult {
 }
 
 func checkHistoryDB(path string) CheckResult {
-	info, err := os.Stat(path)
+	root, base, err := rootedFileProbe(path)
 	if err != nil {
-		if os.IsNotExist(err) {
+		return CheckResult{Name: "history_db", Status: StatusFail, Detail: fmt.Sprintf("prepare history database %s: %v", path, err)}
+	}
+
+	info, err := root.Stat(base)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
 			parent, accessErr := writableAncestor(path)
 			if accessErr != nil {
 				return CheckResult{Name: "history_db", Status: StatusFail, Detail: fmt.Sprintf("history database missing and no writable ancestor found for: %s", path)}
@@ -167,7 +174,7 @@ func checkHistoryDB(path string) CheckResult {
 	if info.IsDir() {
 		return CheckResult{Name: "history_db", Status: StatusFail, Detail: fmt.Sprintf("history database path is a directory: %s", path)}
 	}
-	file, err := os.OpenFile(path, os.O_RDWR, 0)
+	file, err := root.OpenFile(base, os.O_RDWR, 0)
 	if err != nil {
 		return CheckResult{Name: "history_db", Status: StatusFail, Detail: fmt.Sprintf("open history database %s: %v", path, err)}
 	}
@@ -242,9 +249,14 @@ type pathState struct {
 }
 
 func unitPathState(path string) (pathState, error) {
-	info, err := os.Stat(path)
+	root, base, err := rootedFileProbe(path)
 	if err != nil {
-		if os.IsNotExist(err) {
+		return pathState{}, fmt.Errorf("prepare systemd user unit %s: %v", path, err)
+	}
+
+	info, err := root.Stat(base)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
 			return pathState{}, nil
 		}
 		return pathState{}, fmt.Errorf("stat systemd user unit %s: %v", path, err)
@@ -252,7 +264,7 @@ func unitPathState(path string) (pathState, error) {
 	if info.IsDir() {
 		return pathState{}, fmt.Errorf("systemd user unit path is a directory: %s", path)
 	}
-	file, err := os.Open(path)
+	file, err := root.Open(base)
 	if err != nil {
 		return pathState{}, fmt.Errorf("open systemd user unit %s: %v", path, err)
 	}
@@ -261,6 +273,19 @@ func unitPathState(path string) (pathState, error) {
 	}
 
 	return pathState{exists: true}, nil
+}
+
+func rootedFileProbe(path string) (fsroot.Root, string, error) {
+	if path == "" {
+		return fsroot.Root{}, "", fmt.Errorf("path is required")
+	}
+
+	root, err := fsroot.New(filepath.Dir(path))
+	if err != nil {
+		return fsroot.Root{}, "", err
+	}
+
+	return root, filepath.Base(path), nil
 }
 
 func missingUnits(serviceState, timerState pathState, servicePath, timerPath string) []string {

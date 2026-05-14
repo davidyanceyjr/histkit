@@ -52,10 +52,10 @@ jobs:
         run: |
           # Limit the scan to first-party histkit packages derived from go list so repo-local cache directories
           # under the checkout are not treated as source.
-          # Exclude G204 and G304 for now because this CLI intentionally shells out to a resolved local fzf binary
-          # and reads or writes user-local paths by design; those findings need code-level review, not CI churn.
+          # Exclude G204 for now because this CLI intentionally shells out to a resolved local fzf binary
+          # and that finding still needs code-level hardening rather than CI churn.
           mapfile -t packages < .github/tmp/gosec-packages.txt
-          "$(go env GOPATH)/bin/gosec" -tests=false -exclude=G204,G304 "${packages[@]}"
+          "$(go env GOPATH)/bin/gosec" -tests=false -exclude=G204 "${packages[@]}"
 
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
