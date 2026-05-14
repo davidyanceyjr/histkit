@@ -1,10 +1,13 @@
 package backup
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/davidyanceyjr/histkit/internal/fsroot"
 )
 
 func RewriteAtomic(targetPath string, contents []byte) error {
@@ -12,13 +15,17 @@ func RewriteAtomic(targetPath string, contents []byte) error {
 		return fmt.Errorf("rewrite atomic: target path is required")
 	}
 
-	mode, err := targetFileMode(targetPath)
+	root, targetRelativePath, absoluteTargetPath, err := newRewriteTargetRoot(targetPath)
 	if err != nil {
 		return fmt.Errorf("rewrite atomic: %w", err)
 	}
 
-	dir := filepath.Dir(targetPath)
-	tempFile, err := os.CreateTemp(dir, "."+filepath.Base(targetPath)+".tmp-*")
+	mode, err := targetFileMode(root, targetRelativePath, absoluteTargetPath)
+	if err != nil {
+		return fmt.Errorf("rewrite atomic: %w", err)
+	}
+
+	tempFile, err := root.CreateTemp(".", "."+filepath.Base(absoluteTargetPath)+".tmp-*")
 	if err != nil {
 		return fmt.Errorf("rewrite atomic: create temp file: %w", err)
 	}
@@ -46,37 +53,51 @@ func RewriteAtomic(targetPath string, contents []byte) error {
 	}
 	tempClosed = true
 
-	if err := os.Rename(tempPath, targetPath); err != nil {
-		return fmt.Errorf("rewrite atomic: rename temp file %q to %q: %w", tempPath, targetPath, err)
+	if err := os.Rename(tempPath, absoluteTargetPath); err != nil {
+		return fmt.Errorf("rewrite atomic: rename temp file %q to %q: %w", tempPath, absoluteTargetPath, err)
 	}
-	if err := syncDir(dir); err != nil {
-		return fmt.Errorf("rewrite atomic: sync target directory %q: %w", dir, err)
+	if err := syncDir(root); err != nil {
+		return fmt.Errorf("rewrite atomic: sync target directory %q: %w", root.Path(), err)
 	}
 
 	return nil
 }
 
-func targetFileMode(path string) (os.FileMode, error) {
-	info, err := os.Stat(path)
+func targetFileMode(root fsroot.Root, path string, displayPath string) (os.FileMode, error) {
+	info, err := root.Stat(path)
 	if err == nil {
 		if !info.Mode().IsRegular() {
-			return 0, fmt.Errorf("target file %q is not a regular file", path)
+			return 0, fmt.Errorf("target file %q is not a regular file", displayPath)
 		}
 		return info.Mode().Perm(), nil
 	}
-	if os.IsNotExist(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		return 0o600, nil
 	}
 
-	return 0, fmt.Errorf("stat target file %q: %w", path, err)
+	return 0, fmt.Errorf("stat target file %q: %w", displayPath, err)
 }
 
-func syncDir(path string) error {
-	dir, err := os.Open(path)
+func syncDir(root fsroot.Root) error {
+	dir, err := root.Open(".")
 	if err != nil {
 		return err
 	}
 	defer dir.Close()
 
 	return dir.Sync()
+}
+
+func newRewriteTargetRoot(path string) (fsroot.Root, string, string, error) {
+	absolutePath, err := filepath.Abs(path)
+	if err != nil {
+		return fsroot.Root{}, "", "", fmt.Errorf("target file %q: resolve absolute path: %w", path, err)
+	}
+
+	root, err := fsroot.New(filepath.Dir(absolutePath))
+	if err != nil {
+		return fsroot.Root{}, "", "", fmt.Errorf("target file %q: %w", path, err)
+	}
+
+	return root, filepath.Base(absolutePath), absolutePath, nil
 }

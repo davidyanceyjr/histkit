@@ -117,6 +117,41 @@ func TestOpenFileAndReadFileWithinRoot(t *testing.T) {
 	if err := opened.Close(); err != nil {
 		t.Fatalf("Close() error = %v", err)
 	}
+
+	info, err := root.Stat("audit.log")
+	if err != nil {
+		t.Fatalf("Stat() error = %v", err)
+	}
+	if info.Name() != "audit.log" {
+		t.Fatalf("Stat().Name() = %q, want %q", info.Name(), "audit.log")
+	}
+}
+
+func TestCreateTempWithinRoot(t *testing.T) {
+	t.Parallel()
+
+	rootPath := t.TempDir()
+	root, err := New(rootPath)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	file, err := root.CreateTemp(".", ".audit.tmp-*")
+	if err != nil {
+		t.Fatalf("CreateTemp() error = %v", err)
+	}
+	name := file.Name()
+	if err := file.Close(); err != nil {
+		t.Fatalf("Close() error = %v", err)
+	}
+
+	relative, err := filepath.Rel(rootPath, name)
+	if err != nil {
+		t.Fatalf("Rel() error = %v", err)
+	}
+	if relative == ".." || filepath.IsAbs(relative) {
+		t.Fatalf("CreateTemp() created file outside root: %q", name)
+	}
 }
 
 func TestOpenFileRejectsEscape(t *testing.T) {
@@ -130,5 +165,19 @@ func TestOpenFileRejectsEscape(t *testing.T) {
 
 	if _, err := root.OpenFile(filepath.Join("..", "audit.log"), os.O_CREATE|os.O_WRONLY, 0o600); err == nil {
 		t.Fatal("expected OpenFile() escape to fail")
+	}
+}
+
+func TestCreateTempRejectsEscape(t *testing.T) {
+	t.Parallel()
+
+	rootPath := t.TempDir()
+	root, err := New(rootPath)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	if _, err := root.CreateTemp(filepath.Join("..", "outside"), ".audit.tmp-*"); err == nil {
+		t.Fatal("expected CreateTemp() escape to fail")
 	}
 }
