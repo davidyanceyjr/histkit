@@ -68,6 +68,19 @@ func (r Root) Open(path string) (*os.File, error) {
 	return file, nil
 }
 
+func (r Root) Stat(path string) (os.FileInfo, error) {
+	resolved, err := r.Resolve(path)
+	if err != nil {
+		return nil, fmt.Errorf("stat rooted path: %w", err)
+	}
+
+	info, err := os.Stat(resolved)
+	if err != nil {
+		return nil, fmt.Errorf("stat rooted path %q: %w", resolved, err)
+	}
+	return info, nil
+}
+
 func (r Root) OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
 	resolved, err := r.Resolve(path)
 	if err != nil {
@@ -78,6 +91,20 @@ func (r Root) OpenFile(path string, flag int, perm os.FileMode) (*os.File, error
 	file, err := os.OpenFile(resolved, flag, perm)
 	if err != nil {
 		return nil, fmt.Errorf("open rooted path %q: %w", resolved, err)
+	}
+	return file, nil
+}
+
+func (r Root) CreateTemp(dir, pattern string) (*os.File, error) {
+	resolved, err := r.Resolve(dir)
+	if err != nil {
+		return nil, fmt.Errorf("create temp rooted path: %w", err)
+	}
+
+	// #nosec G304 -- resolved is validated to stay within an absolute trusted root.
+	file, err := os.CreateTemp(resolved, pattern)
+	if err != nil {
+		return nil, fmt.Errorf("create temp rooted path %q: %w", resolved, err)
 	}
 	return file, nil
 }

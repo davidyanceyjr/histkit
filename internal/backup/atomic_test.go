@@ -89,3 +89,36 @@ func TestRewriteAtomicRejectsMissingParentDirectory(t *testing.T) {
 		t.Fatal("RewriteAtomic returned nil error for missing parent directory")
 	}
 }
+
+func TestRewriteAtomicAcceptsRelativeTargetPath(t *testing.T) {
+	tempDir := t.TempDir()
+	targetPath := filepath.Join(tempDir, ".bash_history")
+	if err := os.WriteFile(targetPath, []byte("pwd\n"), 0o640); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	originalWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("Chdir returned error: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(originalWD); err != nil {
+			t.Fatalf("restore working directory: %v", err)
+		}
+	}()
+
+	if err := RewriteAtomic(".bash_history", []byte("git status\n")); err != nil {
+		t.Fatalf("RewriteAtomic returned error: %v", err)
+	}
+
+	data, err := os.ReadFile(targetPath)
+	if err != nil {
+		t.Fatalf("ReadFile returned error: %v", err)
+	}
+	if string(data) != "git status\n" {
+		t.Fatalf("rewritten contents = %q, want %q", string(data), "git status\n")
+	}
+}
