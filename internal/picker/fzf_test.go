@@ -2,6 +2,7 @@ package picker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,7 +11,10 @@ import (
 )
 
 func TestSelectReturnsErrorWhenFZFNotFound(t *testing.T) {
-	t.Setenv("PATH", "")
+	restore := stubFZFFinder(t, func(string) (string, error) {
+		return "", execErr("not found")
+	})
+	defer restore()
 
 	_, ok, err := Select(context.Background(), []Candidate{{Label: LabelHistory, Command: "git status"}})
 	if err == nil {
@@ -21,6 +25,46 @@ func TestSelectReturnsErrorWhenFZFNotFound(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "find fzf") {
 		t.Fatalf("Select error = %q, want mention of fzf lookup", err)
+	}
+}
+
+func TestSelectReturnsErrorWhenFZFPathIsRelative(t *testing.T) {
+	restore := stubFZFFinder(t, func(string) (string, error) {
+		return "fzf", nil
+	})
+	defer restore()
+
+	_, ok, err := Select(context.Background(), []Candidate{{Label: LabelHistory, Command: "git status"}})
+	if err == nil {
+		t.Fatal("Select returned nil error for relative fzf path")
+	}
+	if ok {
+		t.Fatal("Select returned ok=true for relative fzf path")
+	}
+	if !strings.Contains(err.Error(), "fzf path must be absolute") {
+		t.Fatalf("Select error = %q, want absolute-path failure", err)
+	}
+}
+
+func TestSelectReturnsErrorWhenFZFPathHasWrongBasename(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "fzf-safe")
+	writeFileMode(t, path, "#!/bin/sh\nexit 0\n", 0o755)
+
+	restore := stubFZFFinder(t, func(string) (string, error) {
+		return path, nil
+	})
+	defer restore()
+
+	_, ok, err := Select(context.Background(), []Candidate{{Label: LabelHistory, Command: "git status"}})
+	if err == nil {
+		t.Fatal("Select returned nil error for wrong fzf basename")
+	}
+	if ok {
+		t.Fatal("Select returned ok=true for wrong fzf basename")
+	}
+	if !strings.Contains(err.Error(), "fzf path must end with fzf") {
+		t.Fatalf("Select error = %q, want basename failure", err)
 	}
 }
 
@@ -119,9 +163,7 @@ func writeFakeFZF(t *testing.T, dir, content string) {
 	t.Helper()
 
 	path := filepath.Join(dir, "fzf")
-	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
-		t.Fatalf("WriteFile returned error: %v", err)
-	}
+	writeFileMode(t, path, content, 0o755)
 }
 
 func useFakeTTY(t *testing.T) string {
@@ -158,4 +200,32 @@ func stubTTYOpener(t *testing.T, file *os.File, err error) func() {
 			_ = file.Close()
 		}
 	}
+}
+
+func stubFZFFinder(t *testing.T, finder func(string) (string, error)) func() {
+	t.Helper()
+
+	original := findFZF
+	findFZF = finder
+	return func() {
+		findFZF = original
+	}
+}
+
+func writeFileMode(t *testing.T, path, content string, mode os.FileMode) {
+	t.Helper()
+
+	if err := os.WriteFile(path, []byte(content), mode); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+}
+
+type execError string
+
+func (e execError) Error() string {
+	return string(e)
+}
+
+func execErr(message string) error {
+	return errors.New(message)
 }
