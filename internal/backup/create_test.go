@@ -67,6 +67,37 @@ func TestCreateCreatesBackupDirectory(t *testing.T) {
 	}
 }
 
+func TestCreateWithRelativeBackupDirStoresAbsoluteBackupPath(t *testing.T) {
+	tempDir := t.TempDir()
+	sourcePath := filepath.Join(tempDir, ".bash_history")
+	if err := os.WriteFile(sourcePath, []byte("pwd\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("Chdir returned error: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(wd); err != nil {
+			t.Fatalf("restore working directory: %v", err)
+		}
+	})
+
+	record, err := Create(sourcePath, filepath.Join("nested", "backups"), time.Date(2026, 4, 30, 21, 31, 30, 0, time.UTC), 3)
+	if err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+
+	wantBackupPath := filepath.Join(tempDir, "nested", "backups", record.ID, ".bash_history")
+	if record.BackupPath != wantBackupPath {
+		t.Fatalf("record.BackupPath = %q, want %q", record.BackupPath, wantBackupPath)
+	}
+}
+
 func TestCreateRejectsInvalidInputs(t *testing.T) {
 	now := time.Now().UTC()
 
@@ -84,6 +115,18 @@ func TestCreateRejectsInvalidInputs(t *testing.T) {
 	}
 	if _, err := Create("/tmp/does-not-exist", "/tmp/backups", now, 1); err == nil {
 		t.Fatal("Create returned nil error for missing source file")
+	}
+}
+
+func TestCreateRejectsNonRegularSourceFile(t *testing.T) {
+	tempDir := t.TempDir()
+	sourcePath := filepath.Join(tempDir, "source-dir")
+	if err := os.Mkdir(sourcePath, 0o700); err != nil {
+		t.Fatalf("Mkdir returned error: %v", err)
+	}
+
+	if _, err := Create(sourcePath, filepath.Join(tempDir, "backups"), time.Date(2026, 4, 30, 21, 31, 0, 0, time.UTC), 1); err == nil {
+		t.Fatal("Create returned nil error for non-regular source file")
 	}
 }
 
